@@ -123,6 +123,9 @@ flutter:
     - family: EncodeBold
       fonts:
         - asset: lib/fonts/EncodeSansSemiExpanded-SemiBold.ttf
+    - family: Enriqueta
+      fonts:
+        - asset: lib/fonts/Enriqueta-Regular.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

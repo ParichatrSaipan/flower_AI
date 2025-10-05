@@ -250,6 +250,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
           ),
           Expanded(
             child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,6 +271,95 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                         color: Colors.black,
                       ),
                     ),
+                  // Add extra space to ensure scroll is always possible
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUseForSection(List<String> useFor) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFF1F7),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(237, 166, 200, 1),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.favorite,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'ใช้ในโอกาส',
+                style: TextStyle(
+                  fontFamily: 'Kanit',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ...useFor.map((use) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.favorite,
+                            size: 16,
+                            color: Color(0xFFFF94B7),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              use,
+                              style: const TextStyle(
+                                fontFamily: 'Kanit',
+                                fontSize: 14,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  // Add extra space to ensure scroll is always possible
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -336,88 +426,6 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
 
     return colorMap[colorName] ?? const Color(0xFFB0BEC5);
   }
-
-  Widget _buildUseForSection(List<String> useFor) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFF1F7),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(237, 166, 200, 1),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.favorite,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'ใช้ในโอกาส',
-                style: TextStyle(
-                  fontFamily: 'Kanit',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: useFor.map((use) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.favorite,
-                          size: 16,
-                          color: Color(0xFFFF94B7),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            use,
-                            style: const TextStyle(
-                              fontFamily: 'Kanit',
-                              fontSize: 14,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _CircleIconButton extends StatelessWidget {
@@ -456,4 +464,3 @@ class _CircleIconButton extends StatelessWidget {
     );
   }
 }
-

@@ -68,8 +68,45 @@ class _SeasonalFlowersScreenState extends State<SeasonalFlowersScreen> {
                   top: 10,
                   bottom: 20,
                 ),
-                itemCount: _flowers.length,
+                itemCount: _flowers.length + 1, // +1 for the quote
                 itemBuilder: (context, index) {
+                  if (index == _flowers.length) {
+                    // This is the last item - show the flower icons and quote
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(3, (index) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Image.asset(
+                                  'asset/streamline-flex_flower-solid.png',
+                                  width: 20,
+                                  height: 20,
+                                  color: Color.fromRGBO(255, 131, 176, 1),
+                                ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Every flower blooms in its own time.',
+                            style: const TextStyle(
+                              fontFamily: 'Enriqueta',
+                              fontSize: 18,
+                              fontStyle: FontStyle.italic,
+                              color: Color(0xFFA4798D),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
                   final flower = _flowers[index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),

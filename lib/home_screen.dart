@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'camera_screen.dart';
 import 'birth_flowers_screen.dart';
 import 'popular_flowers_screen.dart';
-// import 'favorites_screen.dart'; // Commented out - favorite button disabled
+import 'favorites_screen.dart'; // Commented out - favorite button disabled
 import 'dart:io';
 // import 'services/favorites_service.dart'; // Commented out - debug button disabled
 // import 'models/flower.dart'; // Commented out - debug button disabled
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         */
                         // Favorite button - COMMENTED OUT
-                        /*
+                        
                         InkWell(
                           onTap: () {
                             Navigator.push(
@@ -166,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        */
                       ],
                     ),
                   ],
