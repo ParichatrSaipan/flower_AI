@@ -1,0 +1,273 @@
+[
+  {
+    "day": "",
+    "nameThai": "ดอกกุหลาบ",
+    "nameEnglish": "Rose",
+    "imageUrl": "asset/Rose1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีแดง",
+          "meaning": "ความรักแรงกล้า"
+        },
+        {
+          "color": "สีขาว",
+          "meaning": "มิตรภาพ ความบริสุทธิ์"
+        },
+        {
+          "color": "สีเหลือง",
+          "meaning": "ความเป็นมิตร"
+        },
+        {
+          "color": "สีส้ม",
+          "meaning": "ความกระตือรือร้น"
+        }
+      ],
+      "other": null
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "มอบให้คนรัก",
+      "ทำน้ำหอม"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "คาร์เนชั่น",
+    "nameEnglish": "Carnation1",
+    "imageUrl": "asset/Carnation1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีแดง",
+          "meaning": "ความรักและความชื่นชม"
+        },
+        {
+          "color": "สีขาว",
+          "meaning": "ความบริสุทธิ์และความโชคดี"
+        },
+        {
+          "color": "สีชมพู",
+          "meaning": "ความรักของแม่และความทรงจำ"
+        },
+        {
+          "color": "สีเหลือง",
+          "meaning": "ความผิดหวังหรือการปฏิเสธ"
+        },
+        {
+          "color": "สีม่วง",
+          "meaning": "ความเปลี่ยนแปลงและความแปลกประหลาด"
+        }
+      ],
+      "other": null
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "มอบให้คนรัก",
+      "ตกแต่งงานต่างๆ",
+      "วันแม่"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "ดอกเข็ม",
+    "nameEnglish": "Ixora",
+    "imageUrl": "asset/Ixora1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีแดง",
+          "meaning": "ความรักและความมีชีวิตชีวา"
+        },
+        {
+          "color": "สีส้ม",
+          "meaning": "ความอบอุ่นและพลังงาน"
+        },
+        {
+          "color": "สีเหลือง",
+          "meaning": "ความสดใสและความสุข"
+        },
+        {
+          "color": "สีชมพู",
+          "meaning": "ความอ่อนโยนและความรัก"
+        }
+      ],
+      "other": null
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "ปลูกเป็นไม้รั้ว",
+      "ทำยาสมุนไพร",
+      "บูชาพระ"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "เยอบีร่า",
+    "nameEnglish": "Gerbera",
+    "imageUrl": "asset/Gerbera1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีแดง",
+          "meaning": "ความรักแรงกล้าและความหลงใหล"
+        },
+        {
+          "color": "สีชมพู",
+          "meaning": "ความชื่นชมและความกตัญญู"
+        },
+        {
+          "color": "สีส้ม",
+          "meaning": "ความสุขและความเบิกบาน"
+        },
+        {
+          "color": "สีเหลือง",
+          "meaning": "ความอบอุ่นและความเป็นมิตร"
+        },
+        {
+          "color": "สีขาว",
+          "meaning": "ความบริสุทธิ์และความไร้เดียงสา"
+        }
+      ],
+      "other": null
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "มอบให้เป็นของขวัญ",
+      "ตกแต่งงานเลี้ยง",
+      "จัดช่อดอกไม้"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "ดอกบัว",
+    "nameEnglish": "Lotus",
+    "imageUrl": "asset/Lotus1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีขาว",
+          "meaning": "ความบริสุทธิ์ของจิตใจและร่างกาย"
+        },
+        {
+          "color": "สีชมพู",
+          "meaning": "พระพุทธเจ้าและความศักดิ์สิทธิ์"
+        },
+        {
+          "color": "สีแดง",
+          "meaning": "ความรักและความเมตตา"
+        },
+        {
+          "color": "สีน้ำเงิน",
+          "meaning": "ปัญญาและความรู้"
+        }
+      ],
+      "other": "สัญลักษณ์ของการตรัสรู้และความบริสุทธิ์ในพุทธศาสนา"
+    },
+    "useFor": [
+      "บูชาพระ",
+      "ใช้ในพิธีกรรมทางศาสนา",
+      "บริโภค (เมล็ดบัว ใบบัว)",
+      "ทำยาสมุนไพร",
+      "ใช้ประดับ"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "ดอกบานไม่รู้โรย",
+    "nameEnglish": "Globe amaranth1",
+    "imageUrl": "asset/Globe amaranth1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีเหลือง",
+          "meaning": "ความสุข ความอบอุ่น และพลังแห่งดวงอาทิตย์"
+        },
+        {
+          "color": "สีส้ม",
+          "meaning": "ความกระตือรือร้นและความมีชีวิตชีวา"
+        }
+      ],
+      "other": "สัญลักษณ์ของความเจริญรุ่งเรืองและอายุยืน"
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "บูชาพระในเทศกาลต่างๆ",
+      "ไล่แมลง (ปลูกในสวน)",
+      "ทำยาสมุนไพร",
+      "ย้อมสีธรรมชาติ"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "ดอกกล้วยไม้",
+    "nameEnglish": "Orchid",
+    "imageUrl": "asset/Orchid1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีขาว",
+          "meaning": "ความบริสุทธิ์และความสง่างาม"
+        },
+        {
+          "color": "สีชมพู",
+          "meaning": "ความรักและความสุข"
+        },
+        {
+          "color": "สีม่วง",
+          "meaning": "ความเคารพและความชื่นชม"
+        },
+        {
+          "color": "สีเหลือง",
+          "meaning": "มิตรภาพและจุดเริ่มต้นใหม่"
+        }
+      ],
+      "other": "สัญลักษณ์ของความงดงาม ความหรูหรา และความรัก"
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "มอบให้เป็นของขวัญ",
+      "จัดช่อดอกไม้",
+      "ตกแต่งงานแต่งงาน",
+      "ส่งออก"
+    ],
+    "isFavorite": false
+  },
+  {
+    "day": "",
+    "nameThai": "ดอกพุดซ้อน",
+    "nameEnglish": "Gardenia Augusta",
+    "imageUrl": "asset/Gardenia1.png",
+    "imageBase64": null,
+    "meanings": {
+      "colorMeanings": [
+        {
+          "color": "สีขาว",
+          "meaning": "ความบริสุทธิ์ ความสง่างาม และความรักที่แท้จริง"
+        }
+      ],
+      "other": "สัญลักษณ์ของความหวาน ความลับ และความรักที่ลึกซึ้ง"
+    },
+    "useFor": [
+      "ใช้ประดับ",
+      "บูชาพระ",
+      "ทำน้ำหอม",
+      "มอบให้เป็นของขวัญ",
+      "ตกแต่งงานพิธี"
+    ],
+    "isFavorite": false
+  }
+]
