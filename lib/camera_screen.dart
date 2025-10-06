@@ -31,10 +31,7 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       cameras = await availableCameras();
       if (cameras != null && cameras!.isNotEmpty) {
-        _controller = CameraController(
-          cameras![0],
-          ResolutionPreset.high,
-        );
+        _controller = CameraController(cameras![0], ResolutionPreset.high);
         _initializeControllerFuture = _controller!.initialize();
         await _initializeControllerFuture;
         setState(() {
@@ -90,16 +87,11 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(
-                  color: Colors.pink.shade300,
-                ),
+                CircularProgressIndicator(color: Colors.pink.shade300),
                 const SizedBox(height: 16),
                 const Text(
                   'Sending to AI...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -175,7 +167,8 @@ class _CameraScreenState extends State<CameraScreen> {
               return AlertDialog(
                 title: const Text('Recognition Failed'),
                 content: Text(
-                  result.message ?? 'Unable to recognize the flower. Please try again.',
+                  result.message ??
+                      'Unable to recognize the flower. Please try again.',
                 ),
                 actions: [
                   TextButton(
@@ -201,9 +194,7 @@ class _CameraScreenState extends State<CameraScreen> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Error'),
-              content: Text(
-                'An error occurred: ${e.toString()}',
-              ),
+              content: Text('An error occurred: ${e.toString()}'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -241,22 +232,11 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           // Camera preview or captured image
           if (_imagePath != null)
-            Center(
-              child: Image.file(
-                File(_imagePath!),
-                fit: BoxFit.contain,
-              ),
-            )
+            Center(child: Image.file(File(_imagePath!), fit: BoxFit.contain))
           else if (_isInitialized && _controller != null)
-            Center(
-              child: CameraPreview(_controller!),
-            )
+            Center(child: CameraPreview(_controller!))
           else
-            const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-              ),
-            ),
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
 
           // Overlay frame (only show when taking photo)
           if (_imagePath == null && _isInitialized)
@@ -265,15 +245,10 @@ class _CameraScreenState extends State<CameraScreen> {
                 width: 300,
                 height: 300,
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
+                  border: Border.all(color: Colors.white, width: 3),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: CustomPaint(
-                  painter: CornerPainter(),
-                ),
+                child: CustomPaint(painter: CornerPainter()),
               ),
             ),
 
@@ -282,11 +257,7 @@ class _CameraScreenState extends State<CameraScreen> {
             top: 40,
             left: 16,
             child: IconButton(
-              icon: const Icon(
-                Icons.close,
-                color: Colors.white,
-                size: 32,
-              ),
+              icon: const Icon(Icons.close, color: Colors.white, size: 32),
               onPressed: () {
                 Navigator.pop(context);
               },
@@ -368,10 +339,7 @@ class _CameraScreenState extends State<CameraScreen> {
                           ),
                         ),
                         // Placeholder
-                        Container(
-                          width: 32,
-                          height: 32,
-                        ),
+                        Container(width: 32, height: 32),
                       ],
                     ),
             ),
@@ -398,16 +366,40 @@ class CornerPainter extends CustomPainter {
     canvas.drawLine(const Offset(0, 0), const Offset(0, cornerLength), paint);
 
     // Top-right corner
-    canvas.drawLine(Offset(size.width - cornerLength, 0), Offset(size.width, 0), paint);
-    canvas.drawLine(Offset(size.width, 0), Offset(size.width, cornerLength), paint);
+    canvas.drawLine(
+      Offset(size.width - cornerLength, 0),
+      Offset(size.width, 0),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width, 0),
+      Offset(size.width, cornerLength),
+      paint,
+    );
 
     // Bottom-left corner
-    canvas.drawLine(Offset(0, size.height - cornerLength), Offset(0, size.height), paint);
-    canvas.drawLine(Offset(0, size.height), Offset(cornerLength, size.height), paint);
+    canvas.drawLine(
+      Offset(0, size.height - cornerLength),
+      Offset(0, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height),
+      Offset(cornerLength, size.height),
+      paint,
+    );
 
     // Bottom-right corner
-    canvas.drawLine(Offset(size.width - cornerLength, size.height), Offset(size.width, size.height), paint);
-    canvas.drawLine(Offset(size.width, size.height - cornerLength), Offset(size.width, size.height), paint);
+    canvas.drawLine(
+      Offset(size.width - cornerLength, size.height),
+      Offset(size.width, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width, size.height - cornerLength),
+      Offset(size.width, size.height),
+      paint,
+    );
   }
 
   @override
