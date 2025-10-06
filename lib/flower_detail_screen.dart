@@ -68,11 +68,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: _buildContent(),
-      ),
+      body: SafeArea(top: true, bottom: false, child: _buildContent()),
     );
   }
 
@@ -82,9 +78,14 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isLandscape = constraints.maxWidth > constraints.maxHeight;
         final baseGap = constraints.maxHeight > 720 ? 16.0 : 10.0;
         final imageFlex = hasUses ? 4 : 5;
         final meaningsFlex = hasUses ? 3 : 4;
+
+        if (isLandscape) {
+          return _buildLandscapeLayout(flowerData, hasUses, baseGap);
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -123,6 +124,49 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+    Flower flowerData,
+    bool hasUses,
+    double baseGap,
+  ) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: _buildTopBar(flowerData.isFavorite),
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 2, child: _buildImageSection(imageBytes)),
+              SizedBox(width: baseGap),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: hasUses ? 1 : 1,
+                      child: _buildMeaningsSection(flowerData),
+                    ),
+                    if (hasUses) ...[
+                      SizedBox(height: baseGap),
+                      Expanded(
+                        flex: 1,
+                        child: _buildUseForSection(flowerData.useFor!),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -223,8 +267,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
             child: Container(
-              width: 177,
-              height: 53,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFFF94B7),
                 borderRadius: BorderRadius.circular(15),
@@ -236,15 +279,35 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                   ),
                 ],
               ),
-              alignment: Alignment.center,
-              child: Text(
-                flowerData.nameThai,
-                style: const TextStyle(
-                  fontFamily: 'Kanit',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    flowerData.nameThai,
+                    style: const TextStyle(
+                      fontFamily: 'Kanit',
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (flowerData.nameEnglish != null &&
+                      flowerData.nameEnglish!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '(${flowerData.nameEnglish})',
+                      style: const TextStyle(
+                        fontFamily: 'Kanit',
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -271,8 +334,6 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                         color: Colors.black,
                       ),
                     ),
-                  // Add extra space to ensure scroll is always possible
-                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -284,9 +345,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
 
   Widget _buildUseForSection(List<String> useFor) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFF1F7),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFFFFF1F7)),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,8 +417,6 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                       ),
                     );
                   }),
-                  // Add extra space to ensure scroll is always possible
-                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -375,6 +432,26 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
         ? const Color(0xFF5A4A52)
         : Colors.white;
 
+    // ถ้าไม่ได้แบ่งตามสี (เช่น color ว่างเปล่า หรือ '-') ให้แสดงเฉพาะความหมาย ไม่แสดงกล่องสี
+    if (meaning.color.trim().isEmpty || meaning.color.trim() == '-') {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              meaning.meaning,
+              style: const TextStyle(
+                fontFamily: 'Kanit',
+                fontSize: 14,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // กรณีปกติ แสดงกล่องสีและชื่อสี
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
