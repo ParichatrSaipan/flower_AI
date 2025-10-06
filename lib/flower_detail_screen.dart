@@ -432,6 +432,26 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
         ? const Color(0xFF5A4A52)
         : Colors.white;
 
+    // ถ้าไม่ได้แบ่งตามสี (เช่น color ว่างเปล่า หรือ '-') ให้แสดงเฉพาะความหมาย ไม่แสดงกล่องสี
+    if (meaning.color.trim().isEmpty || meaning.color.trim() == '-') {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              meaning.meaning,
+              style: const TextStyle(
+                fontFamily: 'Kanit',
+                fontSize: 14,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // กรณีปกติ แสดงกล่องสีและชื่อสี
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

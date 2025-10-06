@@ -299,19 +299,19 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
   Color _getColorForDay(String day) {
     final dayLower = day.toLowerCase();
     if (dayLower.contains('จันทร์') || dayLower.contains('monday')) {
-      return const Color.fromRGBO(255, 241, 203, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('อังคาร') || dayLower.contains('tuesday')) {
-      return const Color.fromRGBO(255, 255, 248, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('พุธ') || dayLower.contains('wednesday')) {
-      return const Color.fromRGBO(199, 230, 169, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('พฤหัสบดี') || dayLower.contains('thursday')) {
-      return const Color.fromRGBO(255, 196, 0, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('ศุกร์') || dayLower.contains('friday')) {
-      return const Color.fromRGBO(207, 231, 255, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('เสาร์') || dayLower.contains('saturday')) {
-      return const Color.fromRGBO(250, 190, 255, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     } else if (dayLower.contains('อาทิตย์') || dayLower.contains('sunday')) {
-      return const Color.fromRGBO(255, 199, 199, 1);
+      return Color.fromRGBO(91, 14, 43, 1);
     }
     return const Color.fromRGBO(91, 14, 43, 1);
   }
@@ -348,7 +348,7 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
               ? null
               : const BoxConstraints(maxWidth: 330, maxHeight: 165),
           decoration: BoxDecoration(
-            color: const Color.fromRGBO(237, 137, 177, 1),
+            color: const Color.fromRGBO(255, 204, 237, 1),
             borderRadius: BorderRadius.circular(37),
             boxShadow: const [
               BoxShadow(
@@ -391,7 +391,7 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 16,
+                    vertical: 30,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -418,7 +418,7 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
                           style: TextStyle(
                             fontFamily: 'Kanit',
                             fontSize: isLandscape ? 16 : 18,
-                            color: Colors.white,
+                            color: Color.fromRGBO(91, 14, 43, 1),
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
