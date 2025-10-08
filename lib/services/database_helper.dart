@@ -13,7 +13,7 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   static const String _databaseName = 'florasign.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
   static const String _jsonAssetPath = 'asset/data/flowers.json';
 
   static Database? _database;
@@ -93,18 +93,35 @@ class DatabaseHelper {
     await _importFlowersFromJson(db);
   }
 
+  // 2. อัพเดท _upgradeTables
   Future<void> _upgradeTables(
     Database db,
     int oldVersion,
     int newVersion,
   ) async {
-    // Handle database upgrades here
+    print('Upgrading database from version $oldVersion to $newVersion');
+
     if (oldVersion < 2) {
-      // Add any new columns or tables for version 2
+      // เพิ่ม columns สำหรับ detection
+      await db.execute('''
+      ALTER TABLE flowers ADD COLUMN detectedAt TEXT
+    ''');
+
+      await db.execute('''
+      ALTER TABLE flowers ADD COLUMN confidence REAL
+    ''');
+
+      await db.execute('''
+      ALTER TABLE flowers ADD COLUMN detectedImageBase64 TEXT
+    ''');
+
+      await db.execute('''
+      ALTER TABLE flowers ADD COLUMN detectionBoxes TEXT
+    ''');
+
+      print('✅ Added detection columns to flowers table');
     }
   }
-
-  // FLOWER OPERATIONS
 
   /// Insert or update a flower in the database
   Future<int> insertOrUpdateFlower(Flower flower) async {
@@ -404,64 +421,6 @@ class DatabaseHelper {
     await db.close();
   }
 
-  /// Get the current JSON version from the asset file - COMMENTED OUT
-  /*
-  Future<int> getJsonVersion() async {
-    try {
-      String jsonContent = await rootBundle.loadString(_jsonAssetPath);
-      Map<String, dynamic> jsonRoot = json.decode(jsonContent);
-      return jsonRoot['version'] ?? 1;
-    } catch (e) {
-      print('Error reading JSON version: $e');
-      return 1; // Default version
-    }
-  }
-  */
-
-  /// Get the current database version - COMMENTED OUT
-  /*
-  Future<int> getDatabaseVersion() async {
-    try {
-      final db = await database;
-      final results = await db.query('data_version', limit: 1);
-      if (results.isNotEmpty) {
-        return results.first['json_version'] as int;
-      }
-      return 0; // No version stored yet
-    } catch (e) {
-      print('Error reading database version: $e');
-      return 0;
-    }
-  }
-  */
-
-  /// Check if data needs to be refreshed - COMMENTED OUT
-  /*
-  Future<bool> needsDataRefresh() async {
-    final jsonVersion = await getJsonVersion();
-    final dbVersion = await getDatabaseVersion();
-    print('Version check: JSON=$jsonVersion, Database=$dbVersion');
-    return jsonVersion > dbVersion;
-  }
-  */
-
-  /// Auto-refresh data if JSON version is newer - COMMENTED OUT
-  /*
-  Future<bool> autoRefreshIfNeeded() async {
-    try {
-      if (await needsDataRefresh()) {
-        print('Auto-refreshing data due to version mismatch...');
-        await clearAndReimportData();
-        return true; // Data was refreshed
-      }
-      return false; // No refresh needed
-    } catch (e) {
-      print('Error during auto-refresh: $e');
-      return false;
-    }
-  }
-  */
-
   /// Clear all data and re-import from JSON (useful for data sync issues)
   Future<void> clearAndReimportData() async {
     try {
@@ -608,5 +567,131 @@ class DatabaseHelper {
         'errorMessage': 'Import failed: $e',
       });
     }
+  }
+
+  /// บันทึกผลการ detect พร้อมข้อมูลดอกไม้
+  Future<int> saveDetectionResult({
+    required String flowerName,
+    required DateTime detectedAt,
+    required double confidence,
+    required String detectedImageBase64,
+    List<Map<String, dynamic>>? detectionBoxes,
+  }) async {
+    final db = await database;
+
+    // แปลง detectionBoxes เป็น JSON string
+    String? boxesJson;
+    if (detectionBoxes != null && detectionBoxes.isNotEmpty) {
+      boxesJson = json.encode(detectionBoxes);
+    }
+
+    // อัพเดทข้อมูล detection ในดอกไม้ที่มีอยู่
+    final result = await db.update(
+      'flowers',
+      {
+        'detectedAt': detectedAt.toIso8601String(),
+        'confidence': confidence,
+        'detectedImageBase64': detectedImageBase64,
+        'detectionBoxes': boxesJson,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'nameThai = ? OR nameEnglish = ?',
+      whereArgs: [flowerName, flowerName],
+    );
+
+    // ถ้าอัพเดทสำเร็จ log ไว้
+    if (result > 0) {
+      await logSyncOperation(
+        'DETECTION_SAVED',
+        flowerName,
+        true,
+        'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+      );
+    }
+
+    return result;
+  }
+
+  /// ดึงประวัติการ detect ล่าสุด
+  Future<List<Flower>> getRecentDetections({int limit = 10}) async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> results = await db.query(
+      'flowers',
+      where: 'detectedAt IS NOT NULL',
+      orderBy: 'detectedAt DESC',
+      limit: limit,
+    );
+
+    return results.map((map) => Flower.fromMap(map)).toList();
+  }
+
+  /// ลบข้อมูล detection (แต่เก็บข้อมูลดอกไม้ไว้)
+  Future<void> clearDetectionData(String flowerName) async {
+    final db = await database;
+
+    await db.update(
+      'flowers',
+      {
+        'detectedAt': null,
+        'confidence': null,
+        'detectedImageBase64': null,
+        'detectionBoxes': null,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'nameThai = ? OR nameEnglish = ?',
+      whereArgs: [flowerName, flowerName],
+    );
+  }
+
+  /// ค้นหาดอกไม้โดยชื่ออังกฤษ (สำหรับ AI detection)
+  Future<Flower?> getFlowerByEnglishName(String nameEnglish) async {
+    final db = await database;
+
+    // Normalize ชื่อ (lowercase, trim)
+    final normalized = nameEnglish.toLowerCase().trim();
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+    SELECT * FROM flowers 
+    WHERE LOWER(TRIM(nameEnglish)) = ? 
+    OR LOWER(TRIM(nameEnglish)) LIKE ?
+    LIMIT 1
+  ''',
+      [normalized, '%$normalized%'],
+    );
+
+    if (results.isNotEmpty) {
+      return Flower.fromMap(results.first);
+    }
+
+    return null;
+  }
+
+  /// Map ชื่อจาก AI → ชื่อใน database
+  static const Map<String, String> nameMapping = {
+    'rose': 'Rose',
+    'carnation': 'Carnation1',
+    'ixora': 'Ixora',
+    'gerbera': 'Gerbera',
+    'lotus': 'Lotus',
+    'globe amaranth': 'Globe amaranth1',
+    'orchid': 'Orchid',
+    'gardenia augusta': 'gardenia augustar',
+  };
+
+  /// ค้นหาดอกไม้จากชื่อที่ detect ได้ (พร้อม mapping)
+  Future<Flower?> findByDetectedName(String detectedName) async {
+    final normalized = detectedName.toLowerCase().trim();
+
+    // ลองใช้ mapping ก่อน
+    final mappedName = nameMapping[normalized];
+    if (mappedName != null) {
+      final flower = await getFlowerByEnglishName(mappedName);
+      if (flower != null) return flower;
+    }
+
+    // ถ้าไม่เจอ ค้นหาตรงๆ
+    return await getFlowerByEnglishName(detectedName);
   }
 }

@@ -320,7 +320,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               itemCount: favoriteFlowers.length,
               itemBuilder: (context, index) {
                 print(
-                  'UI: Building card for index $index: ${favoriteFlowers[index].nameEnglish}',
+                  'UI: Building card for index $index: ${favoriteFlowers[index].nameEnglish ?? favoriteFlowers[index].nameThai}',
                 );
                 final flower = favoriteFlowers[index];
                 return _buildFlowerCard(flower);
@@ -436,7 +436,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 child: Text(
                   flower.nameThai.isNotEmpty
                       ? flower.nameThai
-                      : flower.nameEnglish,
+                      : flower.nameEnglish ?? '',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
