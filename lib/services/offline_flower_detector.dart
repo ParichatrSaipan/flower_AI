@@ -10,11 +10,10 @@ class OfflineFlowerDetector {
   List<String>? _labels;
 
   // Model configuration
-  static const int inputSize = 320; // ต้องตรงกับตอน export
-  static const double confidenceThreshold = 0.6;
+  static const int inputSize = 640; // ✅ เปลี่ยนจาก 320 → 640
+  static const double confidenceThreshold = 0.5; // ลด threshold เล็กน้อย
   static const double iouThreshold = 0.45;
 
-  // ชื่อดอกไม้ภาษาไทย (เหมือนเดิม)
   static const Map<String, String> flowerNamesTh = {
     "carnation": "คาร์เนชั่น",
     "ixora": "ดอกเข็ม",
@@ -28,23 +27,26 @@ class OfflineFlowerDetector {
 
   bool _isInitialized = false;
 
-  /// โหลด model และ labels
+  /// โหลด model และ labels (แก้ไข options)
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       print('🔄 Loading TFLite model...');
 
-      // โหลด model
-      final options = InterpreterOptions()..threads = 4;
+      // ✅ ปรับ options ให้เหมาะสมกับ model ที่มีปัญหา
+      final options = InterpreterOptions()
+        ..threads =
+            2 // ลดจาก 4 เป็น 2
+        ..useNnApiForAndroid = false; // ปิด NNAPI
 
-      // ถ้าต้องการใช้ GPU (ทดสอบดู)
-      // options.addDelegate(GpuDelegateV2());
-
+      // ✅ เพิ่ม error handling ที่ละเอียด
       _interpreter = await Interpreter.fromAsset(
         'asset/models/best_float16.tflite',
         options: options,
       );
+
+      print('✅ Interpreter created');
 
       // โหลด labels
       final labelsData = await rootBundle.loadString('asset/models/labels.txt');
@@ -53,19 +55,64 @@ class OfflineFlowerDetector {
           .where((label) => label.trim().isNotEmpty)
           .toList();
 
-      _isInitialized = true;
+      // ตรวจสอบ input/output shape
+      final inputTensor = _interpreter!.getInputTensor(0);
+      final outputTensor = _interpreter!.getOutputTensor(0);
 
       print('✅ Model loaded successfully!');
-      print('📊 Input shape: ${_interpreter!.getInputTensor(0).shape}');
-      print('📊 Output shape: ${_interpreter!.getOutputTensor(0).shape}');
+      print('📊 Input shape: ${inputTensor.shape}');
+      print('📊 Input type: ${inputTensor.type}');
+      print('📊 Output shape: ${outputTensor.shape}');
+      print('📊 Output type: ${outputTensor.type}');
       print('🏷️  Labels: ${_labels!.length} classes');
-    } catch (e) {
+
+      // ✅ ทดสอบว่า model ใช้งานได้ไหม
+      await _testModelInference();
+
+      _isInitialized = true;
+    } catch (e, stackTrace) {
       print('❌ Error loading model: $e');
+      print('Stack trace: $stackTrace');
+      _isInitialized = false;
       throw Exception('ไม่สามารถโหลด model ได้: $e');
     }
   }
 
-  /// ตรวจจับดอกไม้พร้อมวาดกรอบ (แทน API call)
+  /// ทดสอบ inference ด้วยรูปปลอม
+  Future<void> _testModelInference() async {
+    try {
+      print('🧪 Testing model inference...');
+
+      // สร้างรูปปลอม 320x320
+      final testImage = img.Image(width: inputSize, height: inputSize);
+      img.fill(testImage, color: img.ColorRgb8(128, 128, 128));
+
+      final input = _preprocessImage(testImage);
+      final inputTensor = input.reshape([1, inputSize, inputSize, 3]);
+
+      // Prepare output
+      final outputShape = _interpreter!.getOutputTensor(0).shape;
+      print('📐 Output shape for test: $outputShape');
+
+      final output = List.generate(
+        outputShape[0],
+        (_) => List.generate(
+          outputShape[1],
+          (_) => List.filled(outputShape[2], 0.0),
+        ),
+      );
+
+      // ลอง run
+      _interpreter!.run(inputTensor, output);
+
+      print('✅ Model inference test passed!');
+    } catch (e) {
+      print('❌ Model inference test failed: $e');
+      throw Exception('Model ใช้งานไม่ได้: $e');
+    }
+  }
+
+  /// ตรวจจับดอกไม้
   Future<RecognitionResult> recognizeFlower(String imagePath) async {
     if (!_isInitialized) {
       await initialize();
@@ -77,7 +124,7 @@ class OfflineFlowerDetector {
       print('🌸 Starting flower detection...');
       print('📁 Image: $imagePath');
 
-      // 1. อ่านและ decode รูป
+      // อ่านรูป
       final imageFile = File(imagePath);
       if (!await imageFile.exists()) {
         throw Exception('ไม่พบไฟล์รูปภาพ');
@@ -92,27 +139,34 @@ class OfflineFlowerDetector {
 
       print('🖼️  Image size: ${image.width}x${image.height}');
 
-      // 2. Preprocess
+      // Preprocess
       final input = _preprocessImage(image);
       final preprocessTime = stopwatch.elapsedMilliseconds;
       print('⏱️  Preprocess: ${preprocessTime}ms');
 
-      // 3. Run inference
-      final output = _runInference(input);
-      final inferenceTime = stopwatch.elapsedMilliseconds - preprocessTime;
-      print('🧠 Inference: ${inferenceTime}ms');
+      // Run inference with error handling
+      List<dynamic> output;
+      try {
+        output = _runInference(input);
+        final inferenceTime = stopwatch.elapsedMilliseconds - preprocessTime;
+        print('🧠 Inference: ${inferenceTime}ms');
+      } catch (e) {
+        print('❌ Inference failed: $e');
+        return RecognitionResult(
+          success: false,
+          message: 'ไม่สามารถประมวลผลได้: $e',
+        );
+      }
 
-      // 4. Postprocess
+      // Postprocess
       final detections = _postProcess(output, image.width, image.height);
-      final postprocessTime =
-          stopwatch.elapsedMilliseconds - inferenceTime - preprocessTime;
+      final postprocessTime = stopwatch.elapsedMilliseconds - preprocessTime;
       print('🔍 Postprocess: ${postprocessTime}ms');
 
       stopwatch.stop();
       print('✨ Total time: ${stopwatch.elapsedMilliseconds}ms');
       print('🎯 Detections: ${detections.length}');
 
-      // 5. สร้างผลลัพธ์
       if (detections.isEmpty) {
         return RecognitionResult(
           success: false,
@@ -120,23 +174,22 @@ class OfflineFlowerDetector {
         );
       }
 
-      // เรียงตาม confidence แล้วเอาตัวแรก
+      // เรียงและเลือกตัวที่ confidence สูงสุด
       detections.sort((a, b) => b.confidence.compareTo(a.confidence));
       final mainDetection = detections.first;
 
       final flowerNameEn = mainDetection.label;
       final flowerNameTh = flowerNamesTh[flowerNameEn] ?? flowerNameEn;
 
-      // 6. วาดกรอบและชื่อบนรูป
+      // วาดกรอบ
       final annotatedImageBase64 = _drawDetectionsOnImage(image, detections);
 
-      // นับจำนวนแต่ละชนิด
+      // สร้าง summary
       final Map<String, int> flowerCounts = {};
       for (var det in detections) {
         flowerCounts[det.label] = (flowerCounts[det.label] ?? 0) + 1;
       }
 
-      // สร้าง summary
       final summary = flowerCounts.map(
         (key, value) => MapEntry(key, {
           'name_th': flowerNamesTh[key] ?? key,
@@ -162,29 +215,28 @@ class OfflineFlowerDetector {
         annotatedImageBase64: annotatedImageBase64,
         detectedAt: DateTime.now(),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Error: $e');
+      print('Stack trace: $stackTrace');
       return RecognitionResult(success: false, message: 'เกิดข้อผิดพลาด: $e');
     }
   }
 
-  /// วาดกรอบและชื่อดอกไม้บนรูป
+  /// วาดกรอบบนรูป
   String _drawDetectionsOnImage(img.Image image, List<Detection> detections) {
-    // สร้าง copy ของรูป
     final annotated = img.Image.from(image);
 
-    // สีสำหรับวาด (ชมพูสดใส)
-    final boxColor = img.ColorRgb8(255, 20, 147); // DeepPink
-    final textColor = img.ColorRgb8(255, 255, 255); // White
-    final bgColor = img.ColorRgb8(255, 20, 147); // DeepPink background
+    final boxColor = img.ColorRgb8(255, 20, 147);
+    final textColor = img.ColorRgb8(255, 255, 255);
+    final bgColor = img.ColorRgb8(255, 20, 147);
 
     for (var detection in detections) {
-      final x1 = detection.x1.toInt();
-      final y1 = detection.y1.toInt();
-      final x2 = detection.x2.toInt();
-      final y2 = detection.y2.toInt();
+      final x1 = detection.x1.toInt().clamp(0, image.width - 1);
+      final y1 = detection.y1.toInt().clamp(0, image.height - 1);
+      final x2 = detection.x2.toInt().clamp(0, image.width - 1);
+      final y2 = detection.y2.toInt().clamp(0, image.height - 1);
 
-      // วาดกรอบ (หนา 3 pixel)
+      // วาดกรอบ
       for (int i = 0; i < 3; i++) {
         img.drawRect(
           annotated,
@@ -196,41 +248,40 @@ class OfflineFlowerDetector {
         );
       }
 
-      // เตรียมข้อความ
+      // ข้อความ
       final flowerNameTh = flowerNamesTh[detection.label] ?? detection.label;
       final label =
           '$flowerNameTh ${(detection.confidence * 100).toStringAsFixed(0)}%';
 
-      // วาดพื้นหลังข้อความ
+      // พื้นหลังข้อความ
       final textBgHeight = 25;
+      final textWidth = (label.length * 8) + 10;
       img.fillRect(
         annotated,
         x1: x1,
-        y1: y1 - textBgHeight,
-        x2: x1 + (label.length * 8) + 10,
+        y1: (y1 - textBgHeight).clamp(0, image.height - 1),
+        x2: (x1 + textWidth).clamp(0, image.width - 1),
         y2: y1,
         color: bgColor,
       );
 
-      // วาดข้อความ (ใช้ drawString)
+      // ข้อความ
       img.drawString(
         annotated,
         label,
         font: img.arial14,
         x: x1 + 5,
-        y: y1 - textBgHeight + 5,
+        y: (y1 - textBgHeight + 5).clamp(0, image.height - 1),
         color: textColor,
       );
     }
 
-    // แปลงเป็น base64
     final png = img.encodePng(annotated);
     return base64Encode(png);
   }
 
-  /// Preprocess image สำหรับ YOLOv8
+  /// Preprocess (เหมือนเดิม)
   Float32List _preprocessImage(img.Image image) {
-    // Resize to input size
     final resized = img.copyResize(
       image,
       width: inputSize,
@@ -238,7 +289,6 @@ class OfflineFlowerDetector {
       interpolation: img.Interpolation.linear,
     );
 
-    // Convert to Float32 [1, 320, 320, 3] และ normalize 0-1
     final input = Float32List(1 * inputSize * inputSize * 3);
     int pixelIndex = 0;
 
@@ -254,13 +304,10 @@ class OfflineFlowerDetector {
     return input;
   }
 
-  /// Run model inference
+  /// Run inference (เหมือนเดิม)
   List<dynamic> _runInference(Float32List input) {
-    // Reshape input
     final inputTensor = input.reshape([1, inputSize, inputSize, 3]);
 
-    // Prepare output
-    // YOLOv8 output: [1, 84, 8400] หรือ [1, num_classes+4, num_boxes]
     final outputShape = _interpreter!.getOutputTensor(0).shape;
     final output = List.generate(
       outputShape[0],
@@ -270,13 +317,12 @@ class OfflineFlowerDetector {
       ),
     );
 
-    // Run inference
     _interpreter!.run(inputTensor, output);
 
-    return output[0]; // [84, 8400]
+    return output[0];
   }
 
-  /// Postprocess YOLOv8 output
+  /// Postprocess (เหมือนเดิม)
   List<Detection> _postProcess(
     List<dynamic> output,
     int originalWidth,
@@ -284,21 +330,15 @@ class OfflineFlowerDetector {
   ) {
     List<Detection> detections = [];
 
-    // YOLOv8 output format: [num_classes+4, num_boxes]
-    // First 4 rows: x_center, y_center, width, height
-    // Remaining rows: class probabilities
-
     final numClasses = output.length - 4;
     final numBoxes = output[0].length;
 
     for (int i = 0; i < numBoxes; i++) {
-      // Get box coordinates (normalized 0-1)
       double x = output[0][i].toDouble();
       double y = output[1][i].toDouble();
       double w = output[2][i].toDouble();
       double h = output[3][i].toDouble();
 
-      // Get class with highest score
       double maxScore = 0;
       int classId = 0;
 
@@ -310,17 +350,23 @@ class OfflineFlowerDetector {
         }
       }
 
-      // Filter by confidence
       if (maxScore > confidenceThreshold) {
-        // Convert to original image coordinates
         final scaleX = originalWidth / inputSize;
         final scaleY = originalHeight / inputSize;
 
-        // Convert from center format to corner format
-        final x1 = (x - w / 2) * scaleX;
-        final y1 = (y - h / 2) * scaleY;
-        final x2 = (x + w / 2) * scaleX;
-        final y2 = (y + h / 2) * scaleY;
+        // ✅ แปลงเป็น double ด้วย .toDouble()
+        final x1 = ((x - w / 2) * scaleX)
+            .clamp(0.0, originalWidth.toDouble())
+            .toDouble();
+        final y1 = ((y - h / 2) * scaleY)
+            .clamp(0.0, originalHeight.toDouble())
+            .toDouble();
+        final x2 = ((x + w / 2) * scaleX)
+            .clamp(0.0, originalWidth.toDouble())
+            .toDouble();
+        final y2 = ((y + h / 2) * scaleY)
+            .clamp(0.0, originalHeight.toDouble())
+            .toDouble();
 
         detections.add(
           Detection(
@@ -336,13 +382,11 @@ class OfflineFlowerDetector {
       }
     }
 
-    // Apply Non-Maximum Suppression
     return _applyNMS(detections);
   }
 
-  /// Non-Maximum Suppression
+  /// NMS (เหมือนเดิม)
   List<Detection> _applyNMS(List<Detection> detections) {
-    // Sort by confidence (descending)
     detections.sort((a, b) => b.confidence.compareTo(a.confidence));
 
     List<Detection> result = [];
@@ -351,7 +395,6 @@ class OfflineFlowerDetector {
       final best = detections.removeAt(0);
       result.add(best);
 
-      // Remove overlapping boxes
       detections.removeWhere((detection) {
         if (best.classId != detection.classId) return false;
         return _calculateIOU(best, detection) > iouThreshold;
@@ -361,7 +404,7 @@ class OfflineFlowerDetector {
     return result;
   }
 
-  /// Calculate Intersection over Union
+  /// Calculate IOU (เหมือนเดิม)
   double _calculateIOU(Detection box1, Detection box2) {
     final x1 = box1.x1 > box2.x1 ? box1.x1 : box2.x1;
     final y1 = box1.y1 > box2.y1 ? box1.y1 : box2.y1;
@@ -384,7 +427,6 @@ class OfflineFlowerDetector {
   }
 }
 
-/// Detection class
 class Detection {
   final double x1, y1, x2, y2;
   final double confidence;
@@ -407,7 +449,6 @@ class Detection {
   }
 }
 
-/// Recognition Result (เหมือนเดิม แต่เพิ่มข้อมูล)
 class RecognitionResult {
   final bool success;
   final String? flowerName;
@@ -417,9 +458,9 @@ class RecognitionResult {
   final int? totalFlowers;
   final List<Detection>? allDetections;
   final Map<String, dynamic>? summary;
-  final int? inferenceTime; // เวลาที่ใช้ (ms)
-  final String? annotatedImageBase64; // รูปที่วาดกรอบแล้ว
-  final DateTime? detectedAt; // วันที่-เวลาที่ detect
+  final int? inferenceTime;
+  final String? annotatedImageBase64;
+  final DateTime? detectedAt;
 
   RecognitionResult({
     required this.success,

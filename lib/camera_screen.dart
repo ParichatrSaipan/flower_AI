@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'services/api_service.dart';
+import 'services/offline_flower_detector.dart';
 import 'services/database_helper.dart';
+import 'models/flower.dart';
 import 'flower_detail_screen.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -20,11 +21,37 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _imagePath;
   bool _isInitialized = false;
   final ImagePicker _picker = ImagePicker();
+  final OfflineFlowerDetector _detector = OfflineFlowerDetector();
+  final DatabaseHelper _database = DatabaseHelper();
+  bool _isDetectorReady = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeSystem();
+  }
+
+  Future<void> _initializeSystem() async {
+    // Initialize camera first
     _initializeCamera();
+
+    // Initialize detector after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      try {
+        await _detector.initialize();
+        if (mounted) {
+          setState(() {
+            _isDetectorReady = true;
+          });
+        }
+        print('✅ Detector initialized');
+      } catch (e) {
+        print('❌ Detector initialization error: $e');
+        if (mounted) {
+          _showSnackBar('ไม่สามารถโหลด AI model ได้: $e');
+        }
+      }
+    });
   }
 
   Future<void> _initializeCamera() async {
@@ -46,6 +73,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     _controller?.dispose();
+    _detector.dispose();
     super.dispose();
   }
 
@@ -72,6 +100,11 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _donePicture() async {
     if (_imagePath == null) return;
 
+    if (!_isDetectorReady) {
+      _showSnackBar('กรุณารอระบบโหลดเสร็จก่อน');
+      return;
+    }
+
     // Show loading dialog
     showDialog(
       context: context,
@@ -90,7 +123,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 CircularProgressIndicator(color: Colors.pink.shade300),
                 const SizedBox(height: 16),
                 const Text(
-                  'Sending to AI...',
+                  '🔍 กำลังวิเคราะห์รูปภาพ...',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ],
@@ -101,74 +134,21 @@ class _CameraScreenState extends State<CameraScreen> {
     );
 
     try {
-      // Send image to Hugging Face AI
-      final result = await ApiService.recognizeFlower(_imagePath!);
+      // Use offline detector instead of API
+      final result = await _detector.recognizeFlower(_imagePath!);
 
       // Close loading dialog
       if (mounted) Navigator.pop(context);
 
-      if (result.success && result.flowerName != null) {
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Image sent! Detected: ${result.flowerName}'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-
-        // Search in local database
-        final dbHelper = DatabaseHelper();
-        final flower = await dbHelper.getFlowerByName(result.flowerName!);
-
-        if (flower != null) {
-          // Navigate to flower detail screen
-          if (mounted) {
-            Navigator.pop(context); // Close camera screen
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FlowerDetailScreen(flower: flower),
-              ),
-            );
-          }
-        } else {
-          // Flower not found in database
-          if (mounted) {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Flower Not Found'),
-                  content: Text(
-                    'AI detected "${result.flowerName}" but it was not found in our database.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
-        }
-      } else {
-        // AI recognition failed
+      if (!result.success) {
         if (mounted) {
           showDialog(
             context: context,
             builder: (BuildContext context) {
               return AlertDialog(
-                title: const Text('Recognition Failed'),
+                title: const Text('ไม่พบดอกไม้'),
                 content: Text(
-                  result.message ??
-                      'Unable to recognize the flower. Please try again.',
+                  result.message ?? 'ไม่พบดอกไม้ในรูป กรุณาลองใหม่',
                 ),
                 actions: [
                   TextButton(
@@ -182,6 +162,112 @@ class _CameraScreenState extends State<CameraScreen> {
             },
           );
         }
+        return;
+      }
+
+      // Search in local database using detected name
+      final flowerData = await _database.findByDetectedName(
+        result.flowerNameEn!,
+      );
+
+      if (flowerData == null) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('ไม่พบข้อมูล'),
+                content: Text(
+                  'ตรวจพบ: ${result.flowerName}\nแต่ไม่พบข้อมูลในฐานข้อมูล',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return;
+      }
+
+      // Show success message
+      if (mounted) {
+        final confidencePercent = (flowerData.confidence! * 100)
+            .toStringAsFixed(1);
+        print('✅ FINAL RESULT: ${flowerData.nameThai} ($confidencePercent%)');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ตรวจพบ: ${flowerData.nameThai} ($confidencePercent%)',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Save detection result to database
+      try {
+        final boxesData = result.allDetections
+            ?.map(
+              (det) => {
+                'x1': det.x1,
+                'y1': det.y1,
+                'x2': det.x2,
+                'y2': det.y2,
+                'label': det.label,
+                'confidence': det.confidence,
+              },
+            )
+            .toList();
+
+        await _database.saveDetectionResult(
+          flowerName: flowerData.nameThai,
+          detectedAt: result.detectedAt!,
+          confidence: result.confidence!,
+          detectedImageBase64: result.annotatedImageBase64!,
+          detectionBoxes: boxesData,
+        );
+
+        print('✅ Detection saved to database');
+      } catch (e) {
+        print('⚠️ Warning: Detection data not saved - $e');
+      }
+
+      // Create flower object with detection data
+      final detectedFlower = flowerData.copyWith(
+        detectedAt: result.detectedAt,
+        confidence: result.confidence,
+        detectedImageBase64: result.annotatedImageBase64,
+        detectionBoxes: result.allDetections
+            ?.map(
+              (det) => DetectionBox(
+                x1: det.x1,
+                y1: det.y1,
+                x2: det.x2,
+                y2: det.y2,
+                label: det.label,
+                confidence: det.confidence,
+              ),
+            )
+            .toList(),
+      );
+
+      // Navigate to flower detail screen
+      if (mounted) {
+        Navigator.pop(context); // Close camera screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FlowerDetailScreen(flower: detectedFlower),
+          ),
+        );
       }
     } catch (e) {
       // Close loading dialog if still open
@@ -193,8 +279,8 @@ class _CameraScreenState extends State<CameraScreen> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text('Error'),
-              content: Text('An error occurred: ${e.toString()}'),
+              title: const Text('เกิดข้อผิดพลาด'),
+              content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -207,12 +293,18 @@ class _CameraScreenState extends State<CameraScreen> {
           },
         );
       }
+      print('❌ Detection error: $e');
     }
   }
 
   Future<void> _pickImageFromGallery() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
       if (image != null) {
         setState(() {
           _imagePath = image.path;
@@ -222,6 +314,17 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       print('Error picking image from gallery: $e');
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.pink.shade300,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
@@ -264,6 +367,45 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           ),
 
+          // Detector status indicator (top right)
+          if (!_isDetectorReady)
+            Positioned(
+              top: 40,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Loading AI...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Bottom controls
           Positioned(
             bottom: 0,
@@ -287,9 +429,10 @@ class _CameraScreenState extends State<CameraScreen> {
                         ),
                         // Done button
                         ElevatedButton(
-                          onPressed: _donePicture,
+                          onPressed: _isDetectorReady ? _donePicture : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.pink.shade300,
+                            disabledBackgroundColor: Colors.grey,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),

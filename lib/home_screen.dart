@@ -1,4 +1,4 @@
-import 'package:florasign_ai/flower_detection_screen.dart';
+import 'package:florasign_ai/camera_screen.dart';
 import 'package:flutter/material.dart';
 import 'birth_flowers_screen.dart';
 import 'popular_flowers_screen.dart';
@@ -172,9 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const FlowerDetectionScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const CameraScreen()),
               );
               if (result != null) {
                 print('Photo saved at: $result');
@@ -303,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const FlowerDetectionScreen(),
+                      builder: (context) => const CameraScreen(),
                     ),
                   );
                   if (result != null) {
