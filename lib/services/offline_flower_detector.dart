@@ -42,14 +42,12 @@ class OfflineFlowerDetector {
       // options.addDelegate(GpuDelegateV2());
 
       _interpreter = await Interpreter.fromAsset(
-        'assets/models/best_int8.tflite',
+        'asset/models/best_float16.tflite',
         options: options,
       );
 
       // โหลด labels
-      final labelsData = await rootBundle.loadString(
-        'assets/models/labels.txt',
-      );
+      final labelsData = await rootBundle.loadString('asset/models/labels.txt');
       _labels = labelsData
           .split('\n')
           .where((label) => label.trim().isNotEmpty)

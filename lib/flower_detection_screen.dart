@@ -29,23 +29,19 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
     _initializeSystem();
   }
 
-  /// เตรียมระบบ: โหลด model + database
   Future<void> _initializeSystem() async {
     setState(() {
       _statusText = 'กำลังโหลด AI model...';
     });
 
     try {
-      // โหลด detector และรอ database พร้อม
       await _detector.initialize();
-
-      // Database จะ auto-load จาก JSON ตอน first run
       final dbInfo = await _database.getDatabaseInfo();
       print('📊 Database info: $dbInfo');
 
       setState(() {
         _isInitialized = true;
-        _statusText = 'พร้อมใช้งาน! 📸 เลือกรูปเพื่อเริ่มต้น';
+        _statusText = 'พร้อมใช้งาน!';
       });
 
       print('✅ System ready!');
@@ -57,7 +53,6 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
     }
   }
 
-  /// เลือกรูปจากแหล่งที่มา
   Future<void> _pickImage(ImageSource source) async {
     if (!_isInitialized) {
       _showSnackBar('กรุณารอระบบโหลดเสร็จก่อน');
@@ -80,7 +75,6 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
         _statusText = '🔍 กำลังวิเคราะห์รูปภาพ...';
       });
 
-      // Detect ดอกไม้
       await _detectAndNavigate(image.path);
     } catch (e) {
       setState(() {
@@ -91,10 +85,8 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
     }
   }
 
-  /// Detect และไปหน้า Detail
   Future<void> _detectAndNavigate(String imagePath) async {
     try {
-      // 1. Detect ดอกไม้
       final result = await _detector.recognizeFlower(imagePath);
 
       setState(() {
@@ -109,7 +101,6 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
         return;
       }
 
-      // 2. ค้นหาข้อมูลดอกไม้จาก database
       final flowerData = await _database.findByDetectedName(
         result.flowerNameEn!,
       );
@@ -122,13 +113,8 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
         return;
       }
 
-      // 3. บันทึกผลการ detect ลง database
-      await _database.saveDetectionResult(
-        flowerName: flowerData.nameThai,
-        detectedAt: result.detectedAt!,
-        confidence: result.confidence!,
-        detectedImageBase64: result.annotatedImageBase64!,
-        detectionBoxes: result.allDetections
+      try {
+        final boxesData = result.allDetections
             ?.map(
               (det) => {
                 'x1': det.x1,
@@ -139,12 +125,21 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
                 'confidence': det.confidence,
               },
             )
-            .toList(),
-      );
+            .toList();
 
-      print('✅ Detection saved to database');
+        await _database.saveDetectionResult(
+          flowerName: flowerData.nameThai,
+          detectedAt: result.detectedAt!,
+          confidence: result.confidence!,
+          detectedImageBase64: result.annotatedImageBase64!,
+          detectionBoxes: boxesData,
+        );
 
-      // 4. สร้าง Flower object พร้อมข้อมูล detection
+        print('✅ Detection saved to database');
+      } catch (e) {
+        print('⚠️ Warning: Detection data not saved - $e');
+      }
+
       final detectedFlower = flowerData.copyWith(
         detectedAt: result.detectedAt,
         confidence: result.confidence,
@@ -163,7 +158,6 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
             .toList(),
       );
 
-      // 5. ไปหน้า Detail
       if (!mounted) return;
 
       await Navigator.push<Flower>(
@@ -173,10 +167,9 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
         ),
       );
 
-      // 6. รีเซ็ตหน้าจอ
       setState(() {
         _selectedImage = null;
-        _statusText = 'พร้อมใช้งาน! 📸 เลือกรูปเพื่อเริ่มต้น';
+        _statusText = 'พร้อมใช้งาน!';
       });
 
       print('✅ Detection completed successfully!');
@@ -204,201 +197,225 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          '🌸 ตรวจจับดอกไม้',
-          style: TextStyle(fontFamily: 'Kanit', fontWeight: FontWeight.bold),
+          'ตรวจจับดอกไม้',
+          style: TextStyle(
+            fontFamily: 'Kanit',
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: const Color(0xFFFF94B7),
+        backgroundColor: Colors.black,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Status bar
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFFFFF1F7),
+          // Background
+          Container(color: Colors.black),
+
+          // Image preview or placeholder
+          Center(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  _statusText,
-                  style: const TextStyle(
-                    fontFamily: 'Kanit',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                // Camera frame / Image preview
+                if (_selectedImage != null)
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(17),
+                      child: Image.file(
+                        _selectedImage!,
+                        fit: BoxFit.cover,
+                        width: 300,
+                        height: 350,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 300,
+                    height: 350,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: CustomPaint(painter: CornerPainter()),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                if (!_isInitialized && !_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: CircularProgressIndicator(color: Color(0xFFFF94B7)),
+
+                const SizedBox(height: 30),
+
+                // Status text
+                if (_isLoading)
+                  Column(
+                    children: [
+                      const CircularProgressIndicator(
+                        color: Color(0xFFFF94B7),
+                        strokeWidth: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _statusText,
+                        style: const TextStyle(
+                          fontFamily: 'Kanit',
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  )
+                else if (!_isInitialized)
+                  Column(
+                    children: [
+                      const CircularProgressIndicator(color: Color(0xFFFF94B7)),
+                      const SizedBox(height: 16),
+                      Text(
+                        _statusText,
+                        style: const TextStyle(
+                          fontFamily: 'Kanit',
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    _statusText,
+                    style: const TextStyle(
+                      fontFamily: 'Kanit',
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
                   ),
               ],
             ),
           ),
 
-          // Image preview area
-          Expanded(child: _buildImagePreview()),
-
-          // Action buttons
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () => _pickImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt, size: 28),
-                      label: const Text(
-                        'ถ่ายรูป',
-                        style: TextStyle(
-                          fontFamily: 'Kanit',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF94B7),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 3,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () => _pickImage(ImageSource.gallery),
-                      icon: const Icon(Icons.photo_library, size: 28),
-                      label: const Text(
-                        'เลือกรูป',
-                        style: TextStyle(
-                          fontFamily: 'Kanit',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF94B7),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 3,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImagePreview() {
-    if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(
-              color: Color(0xFFFF94B7),
-              strokeWidth: 4,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _statusText,
-              style: const TextStyle(
-                fontFamily: 'Kanit',
-                fontSize: 16,
-                color: Color(0xFF5A4A52),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_selectedImage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.file(_selectedImage!, fit: BoxFit.contain),
-          ),
-        ),
-      );
-    }
-
-    // Placeholder
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.local_florist, size: 120, color: Colors.pink.shade200),
-          const SizedBox(height: 20),
-          const Text(
-            'เลือกรูปดอกไม้\nเพื่อเริ่มตรวจจับ',
-            style: TextStyle(
-              fontFamily: 'Kanit',
-              fontSize: 20,
-              color: Color(0xFFA4798D),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.symmetric(horizontal: 40),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF1F7),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFFFF94B7), width: 2),
-            ),
-            child: const Column(
-              children: [
-                Icon(Icons.info_outline, color: Color(0xFFFF94B7), size: 32),
-                SizedBox(height: 8),
-                Text(
-                  'คำแนะนำ',
-                  style: TextStyle(
-                    fontFamily: 'Kanit',
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5A4A52),
-                  ),
+          // Bottom controls
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  '• ถ่ายรูปดอกไม้ให้ชัดเจน\n'
-                  '• หลีกเลี่ยงแสงสะท้อน\n'
-                  '• ดอกไม้ควรเต็มกรอบ\n'
-                  '• พื้นหลังไม่รกเกินไป',
-                  style: TextStyle(
-                    fontFamily: 'Kanit',
-                    fontSize: 14,
-                    color: Color(0xFF5A4A52),
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ],
+              ),
+              child: _selectedImage != null
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Retake button
+                        IconButton(
+                          icon: const Icon(
+                            Icons.refresh,
+                            color: Color(0xFFFF94B7),
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _selectedImage = null;
+                              _statusText = 'พร้อมใช้งาน!';
+                            });
+                          },
+                        ),
+                        // Done button
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF94B7),
+                            disabledBackgroundColor: Colors.grey,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 16,
+                            ),
+                          ),
+                          child: const Text(
+                            'ยืนยัน',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Kanit',
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Gallery button
+                        GestureDetector(
+                          onTap: _isLoading
+                              ? null
+                              : () => _pickImage(ImageSource.gallery),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.photo_library,
+                                color: _isLoading ? Colors.grey : Colors.black,
+                                size: 36,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'เลือกรูป',
+                                style: TextStyle(
+                                  fontFamily: 'Kanit',
+                                  fontSize: 12,
+                                  color: _isLoading
+                                      ? Colors.grey
+                                      : Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Capture button
+                        GestureDetector(
+                          onTap: _isLoading
+                              ? null
+                              : () => _pickImage(ImageSource.camera),
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: _isLoading
+                                  ? Colors.grey
+                                  : const Color(0xFFFF94B7),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                        // Placeholder
+                        const SizedBox(width: 60),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -411,4 +428,60 @@ class _FlowerDetectionScreenState extends State<FlowerDetectionScreen> {
     _detector.dispose();
     super.dispose();
   }
+}
+
+// Corner painter for camera frame
+class CornerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+
+    const cornerLength = 30.0;
+
+    // Top-left
+    canvas.drawLine(const Offset(0, 0), const Offset(cornerLength, 0), paint);
+    canvas.drawLine(const Offset(0, 0), const Offset(0, cornerLength), paint);
+
+    // Top-right
+    canvas.drawLine(
+      Offset(size.width - cornerLength, 0),
+      Offset(size.width, 0),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width, 0),
+      Offset(size.width, cornerLength),
+      paint,
+    );
+
+    // Bottom-left
+    canvas.drawLine(
+      Offset(0, size.height - cornerLength),
+      Offset(0, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height),
+      Offset(cornerLength, size.height),
+      paint,
+    );
+
+    // Bottom-right
+    canvas.drawLine(
+      Offset(size.width - cornerLength, size.height),
+      Offset(size.width, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width, size.height - cornerLength),
+      Offset(size.width, size.height),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

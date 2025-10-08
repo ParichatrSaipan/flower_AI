@@ -23,6 +23,18 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
     super.initState();
     flower = widget.flower;
     _loadFlowerImage();
+
+    // ✅ DEBUG: เพิ่ม print เพื่อดูข้อมูล
+    print('═══════════════════════════════════════');
+    print('📊 FlowerDetailScreen Init:');
+    print('  Name (TH): ${flower.nameThai}');
+    print('  Name (EN): ${flower.nameEnglish}');
+    print('  useFor: ${flower.useFor}');
+    print('  useFor.length: ${flower.useFor?.length}');
+    print('  meanings.other: ${flower.meanings.other}');
+    print('  colorMeanings: ${flower.meanings.colorMeanings}');
+    print('  colorMeanings.length: ${flower.meanings.colorMeanings?.length}');
+    print('═══════════════════════════════════════');
   }
 
   void _loadFlowerImage() {
@@ -248,10 +260,20 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
 
   Widget _buildMeaningsSection(Flower flowerData) {
     final meanings = flowerData.meanings;
+
+    // ✅ DEBUG
+    print('_buildMeaningsSection:');
+    print('  colorMeanings: ${meanings.colorMeanings}');
+    print('  colorMeanings.length: ${meanings.colorMeanings?.length}');
+    print('  other: ${meanings.other}');
+
     final hasColorMeanings =
         meanings.colorMeanings != null && meanings.colorMeanings!.isNotEmpty;
     final hasOtherMeaning =
         meanings.other != null && meanings.other!.isNotEmpty;
+
+    print('  hasColorMeanings: $hasColorMeanings');
+    print('  hasOtherMeaning: $hasOtherMeaning');
 
     return Container(
       decoration: const BoxDecoration(
@@ -318,6 +340,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ✅ แสดง colorMeanings ถ้ามี
                   if (hasColorMeanings)
                     ...meanings.colorMeanings!.map(
                       (meaning) => Padding(
@@ -325,6 +348,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                         child: _buildColorMeaningRow(meaning),
                       ),
                     ),
+                  // ✅ แสดง other meaning ถ้าไม่มี colorMeanings
                   if (!hasColorMeanings && hasOtherMeaning)
                     Text(
                       meanings.other!,
@@ -332,6 +356,17 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                         fontFamily: 'Kanit',
                         fontSize: 14,
                         color: Colors.black,
+                      ),
+                    ),
+                  // ✅ ถ้าไม่มีข้อมูลอะไรเลย แสดง message
+                  if (!hasColorMeanings && !hasOtherMeaning)
+                    const Text(
+                      'ไม่มีข้อมูลความหมายในฐานข้อมูล',
+                      style: TextStyle(
+                        fontFamily: 'Kanit',
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                 ],
@@ -344,6 +379,8 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
   }
 
   Widget _buildUseForSection(List<String> useFor) {
+    print('_buildUseForSection called with useFor: $useFor');
+
     return Container(
       decoration: const BoxDecoration(color: Color(0xFFFFF1F7)),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),

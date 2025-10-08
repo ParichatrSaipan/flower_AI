@@ -41,53 +41,57 @@ class DatabaseHelper {
   Future<void> _createTables(Database db, int version) async {
     // Create flowers table
     await db.execute('''
-      CREATE TABLE flowers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        day TEXT,
-        nameThai TEXT NOT NULL,
-        nameEnglish TEXT NOT NULL,
-        imageUrl TEXT,
-        colorMeanings TEXT,
-        otherMeanings TEXT,
-        useFor TEXT,
-        isFavorite INTEGER DEFAULT 0,
-        imageBase64 TEXT,
-        createdAt TEXT,
-        updatedAt TEXT,
-        UNIQUE(nameThai, nameEnglish)
-      )
-    ''');
+    CREATE TABLE flowers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day TEXT,
+      nameThai TEXT NOT NULL,
+      nameEnglish TEXT NOT NULL,
+      imageUrl TEXT,
+      colorMeanings TEXT,
+      otherMeanings TEXT,
+      useFor TEXT,
+      isFavorite INTEGER DEFAULT 0,
+      imageBase64 TEXT,
+      detectedAt TEXT,
+      confidence REAL,
+      detectedImageBase64 TEXT,
+      detectionBoxes TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
+      UNIQUE(nameThai, nameEnglish)
+    )
+  ''');
 
     // Create favorites cache table for quick access
     await db.execute('''
-      CREATE TABLE favorites_cache (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        flowerName TEXT NOT NULL UNIQUE,
-        lastSynced TEXT,
-        isDeleted INTEGER DEFAULT 0
-      )
-    ''');
+    CREATE TABLE favorites_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      flowerName TEXT NOT NULL UNIQUE,
+      lastSynced TEXT,
+      isDeleted INTEGER DEFAULT 0
+    )
+  ''');
 
     // Create sync log table
     await db.execute('''
-      CREATE TABLE sync_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        action TEXT NOT NULL,
-        flowerName TEXT,
-        timestamp TEXT,
-        success INTEGER DEFAULT 0,
-        errorMessage TEXT
-      )
-    ''');
+    CREATE TABLE sync_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      flowerName TEXT,
+      timestamp TEXT,
+      success INTEGER DEFAULT 0,
+      errorMessage TEXT
+    )
+  ''');
 
     // Create data version table to track JSON version
     await db.execute('''
-      CREATE TABLE data_version (
-        id INTEGER PRIMARY KEY,
-        json_version INTEGER NOT NULL,
-        last_updated TEXT NOT NULL
-      )
-    ''');
+    CREATE TABLE data_version (
+      id INTEGER PRIMARY KEY,
+      json_version INTEGER NOT NULL,
+      last_updated TEXT NOT NULL
+    )
+  ''');
 
     // Automatically import data from JSON file on first run
     await _importFlowersFromJson(db);
@@ -456,44 +460,39 @@ class DatabaseHelper {
       int importedCount = 0;
       for (var item in jsonData) {
         try {
-          // Parse colorMeanings
-          List<FlowerTypeMeanning>? colorMeaningsList;
+          // ✅ Parse colorMeanings - เก็บเป็น JSON string
+          String? colorMeaningsJson;
           if (item['meanings']?['colorMeanings'] != null &&
               item['meanings']['colorMeanings'] is List) {
             try {
-              colorMeaningsList = (item['meanings']['colorMeanings'] as List)
-                  .map((colorItem) => FlowerTypeMeanning.fromJson(colorItem))
-                  .toList();
+              final colorList = item['meanings']['colorMeanings'] as List;
+              colorMeaningsJson = json.encode(colorList);
+              print('✅ Parsed colorMeanings for ${item['nameThai']}');
             } catch (e) {
-              print(
-                'Error parsing colorMeanings for ${item['nameEnglish']}: $e',
-              );
+              print('Error parsing colorMeanings for ${item['nameThai']}: $e');
             }
           }
 
-          // Parse meanings
-          Meanings meanings = Meanings(
-            colorMeanings: colorMeaningsList,
-            other: item['meanings']?['other']?.toString(),
-          );
-
-          // Parse useFor list
-          List<String>? useForList;
+          // ✅ Parse useFor - เก็บเป็น JSON string
+          String? useForJson;
           if (item['useFor'] != null && item['useFor'] is List) {
-            useForList = (item['useFor'] as List)
-                .map((e) => e.toString())
-                .toList();
+            try {
+              final useList = item['useFor'] as List;
+              useForJson = json.encode(useList);
+              print('✅ Parsed useFor for ${item['nameThai']}');
+            } catch (e) {
+              print('Error parsing useFor for ${item['nameThai']}: $e');
+            }
           }
 
-          // Load image from path if provided, otherwise use base64 if available
+          // Load image from path if provided
           String? imageBase64Data;
-
-          // Support multiple field names for backward compatibility
           String? imageValue =
               item['imageBase64']?.toString() ??
               item['imageUrl']?.toString() ??
               item['image']?.toString() ??
               item['imageBinary']?.toString();
+
           if (imageValue != null && imageValue.isNotEmpty) {
             // If it starts with common image path prefixes, treat as path
             if (imageValue.startsWith('assets/') ||
@@ -510,7 +509,6 @@ class DatabaseHelper {
                 print('Loaded image from path: $imageValue');
               } catch (e) {
                 print('Error loading image from path $imageValue: $e');
-                // If path loading fails, set to null instead of using invalid data
                 imageBase64Data = null;
               }
             } else {
@@ -519,33 +517,28 @@ class DatabaseHelper {
             }
           }
 
-          // Create flower object from JSON data
-          Flower flower = Flower(
-            day: item['day']?.toString() ?? '',
-            nameThai: item['nameThai']?.toString() ?? '',
-            nameEnglish: item['nameEnglish']?.toString() ?? '',
-            imageUrl: item['imageUrl']?.toString(),
-            meanings: meanings,
-            useFor: useForList,
-            isFavorite: item['isFavorite'] == true,
-            imageBase64: imageBase64Data,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+          // ✅ Insert flower into database พร้อมข้อมูล colorMeanings และ useFor
+          await db.insert('flowers', {
+            'day': item['day']?.toString() ?? '',
+            'nameThai': item['nameThai']?.toString() ?? '',
+            'nameEnglish': item['nameEnglish']?.toString() ?? '',
+            'imageUrl': item['imageUrl']?.toString(),
+            'colorMeanings': colorMeaningsJson,
+            'otherMeanings': item['meanings']?['other']?.toString(),
+            'useFor': useForJson,
+            'isFavorite': item['isFavorite'] == true ? 1 : 0,
+            'imageBase64': imageBase64Data,
+            'createdAt': DateTime.now().toIso8601String(),
+            'updatedAt': DateTime.now().toIso8601String(),
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-          // Insert flower into database with replace strategy
-          await db.insert(
-            'flowers',
-            flower.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
           importedCount++;
         } catch (e) {
           print('Error importing flower: ${item['nameThai']} - $e');
         }
       }
 
-      print('Successfully imported $importedCount flowers from JSON assets');
+      print('✅ Successfully imported $importedCount flowers from JSON assets');
 
       // Log the import in sync log
       await db.insert('sync_log', {
@@ -556,7 +549,7 @@ class DatabaseHelper {
         'errorMessage': 'Imported $importedCount flowers on first run',
       });
     } catch (e) {
-      print('Error during JSON import: $e');
+      print('❌ Error during JSON import: $e');
 
       // Log the error
       await db.insert('sync_log', {
@@ -671,13 +664,13 @@ class DatabaseHelper {
   /// Map ชื่อจาก AI → ชื่อใน database
   static const Map<String, String> nameMapping = {
     'rose': 'Rose',
-    'carnation': 'Carnation1',
+    'carnation': 'Carnation',
     'ixora': 'Ixora',
     'gerbera': 'Gerbera',
     'lotus': 'Lotus',
-    'globe amaranth': 'Globe amaranth1',
+    'globe amaranth': 'Globe amaranth',
     'orchid': 'Orchid',
-    'gardenia augusta': 'gardenia augustar',
+    'gardenia augusta': 'Gardenia augusta',
   };
 
   /// ค้นหาดอกไม้จากชื่อที่ detect ได้ (พร้อม mapping)

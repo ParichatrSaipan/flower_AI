@@ -1,8 +1,9 @@
+import 'package:florasign_ai/flower_detection_screen.dart';
 import 'package:flutter/material.dart';
-import 'camera_screen.dart';
 import 'birth_flowers_screen.dart';
 import 'popular_flowers_screen.dart';
 import 'favorites_screen.dart';
+import 'history_screen.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
           image: DecorationImage(
             image: AssetImage('asset/start_screen.png'),
             fit: BoxFit.cover,
+            opacity: 0.7,
           ),
         ),
         child: SafeArea(
@@ -45,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildPortraitLayout() {
     return Column(
       children: [
-        // Top row with logo and favorite
+        // Top row with logo and icons
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -54,29 +56,74 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // Logo on the left
               Image.asset('asset/logo.png', width: 150, height: 105),
-              // Favorite button on the right
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FavoritesScreen(),
+              // Icons on the right
+              Row(
+                children: [
+                  // Info button
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                  );
-                },
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.pink.shade200,
-                    shape: BoxShape.circle,
+                    child: Icon(
+                      Icons.info_outline,
+                      color: Colors.pink.shade300,
+                      size: 28,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.favorite,
-                    color: Colors.white,
-                    size: 30,
+                  const SizedBox(width: 8),
+                  // History/Clock button
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HistoryScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.access_time,
+                        color: Colors.pink.shade300,
+                        size: 28,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  // Favorite button
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FavoritesScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.pink.shade300,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -101,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }),
                 const SizedBox(height: 20),
                 _buildFlowerCard(
-                  'Popular Flowers ',
+                  'Popular Flowers',
                   'asset/popularflowers.png',
                   () {
                     print('Popular Flowers card pressed');
@@ -118,14 +165,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
-        // Camera button
+        // Camera button at bottom
         Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
           child: InkWell(
             onTap: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CameraScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const FlowerDetectionScreen(),
+                ),
               );
               if (result != null) {
                 print('Photo saved at: $result');
@@ -133,16 +182,30 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             child: Container(
-              width: 80,
-              height: 80,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
-                color: Colors.pink.shade300,
+                color: Colors.pink.shade100.withOpacity(0.9),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.pink.withOpacity(0.3),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              child: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 40,
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.pink.shade300,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 45,
+                ),
               ),
             ),
           ),
@@ -166,29 +229,71 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Logo
                   Image.asset('asset/logo.png', width: 120, height: 84),
                   const SizedBox(height: 20),
-                  // Favorite button
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FavoritesScreen(),
+                  // Icons column
+                  Column(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.pink.shade200,
-                        shape: BoxShape.circle,
+                        child: Icon(
+                          Icons.info_outline,
+                          color: Colors.pink.shade300,
+                          size: 28,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Colors.white,
-                        size: 30,
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.access_time,
+                            color: Colors.pink.shade300,
+                            size: 28,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FavoritesScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.pink.shade300,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -198,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CameraScreen(),
+                      builder: (context) => const FlowerDetectionScreen(),
                     ),
                   );
                   if (result != null) {
@@ -207,16 +312,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
                 child: Container(
-                  width: 70,
-                  height: 70,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.pink.shade300,
+                    color: Colors.pink.shade100.withOpacity(0.9),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pink.withOpacity(0.3),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 35,
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.pink.shade300,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 35,
+                    ),
                   ),
                 ),
               ),
@@ -251,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 20),
                   Flexible(
                     child: _buildFlowerCard(
-                      'Popular Flowers ',
+                      'Popular Flowers',
                       'asset/popularflowers.png',
                       () {
                         print('Popular Flowers card pressed');
@@ -308,9 +427,9 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -334,26 +453,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.2)],
                   ),
                 ),
               ),
               Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                    horizontal: 30,
+                    vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(25),
+                    color: const Color(0xFFFCE4EC).withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     title,
                     style: const TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6D4C5E),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
