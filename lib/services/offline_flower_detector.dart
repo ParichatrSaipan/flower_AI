@@ -10,8 +10,19 @@ class OfflineFlowerDetector {
   List<String>? _labels;
 
   // Model configuration
-  static const int inputSize = 640; // ✅ เปลี่ยนจาก 320 → 640
-  static const double confidenceThreshold = 0.5; // ลด threshold เล็กน้อย
+  static const int inputSize = 640;
+
+  // 🎯 Confidence Threshold: ค่าความมั่นใจขั้นต่ำที่จะยอมรับผล (0.0 - 1.0)
+  // ค่าสูง (0.5-0.9) = เข้มงวด, detect น้อย แต่แม่นกว่า
+  // ค่าต่ำ (0.15-0.3) = ผ่อนปรน, detect เยอะ แต่อาจผิดบ้าง
+  //
+  // 💡 ปรับค่านี้ตามความต้องการ:
+  // - 0.15 = detect ง่ายมาก (แนะนำถ้า model ไม่ค่อยแม่น)
+  // - 0.25 = พอดี (ค่าปกติสำหรับ YOLOv8)
+  // - 0.35 = ค่อนข้างเข้มงวด
+  // - 0.50 = เข้มงวดมาก (ค่าเดิม)
+  static const double confidenceThreshold = 0.15; // 👈 ปรับค่านี้
+
   static const double iouThreshold = 0.45;
 
   static const Map<String, String> flowerNamesTh = {
@@ -27,22 +38,20 @@ class OfflineFlowerDetector {
 
   bool _isInitialized = false;
 
-  /// โหลด model และ labels (แก้ไข options)
+  /// โหลด model และ labels
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       print('🔄 Loading TFLite model...');
 
-      // ✅ ปรับ options ให้เหมาะสมกับ model ที่มีปัญหา
       final options = InterpreterOptions()
-        ..threads =
-            2 // ลดจาก 4 เป็น 2
-        ..useNnApiForAndroid = false; // ปิด NNAPI
+        ..threads = 2
+        ..useNnApiForAndroid = false;
 
-      // ✅ เพิ่ม error handling ที่ละเอียด
+      // ✅ เปลี่ยนเป็น float32
       _interpreter = await Interpreter.fromAsset(
-        'asset/models/best_float16.tflite',
+        'asset/models/best_float32.tflite',
         options: options,
       );
 
@@ -66,7 +75,7 @@ class OfflineFlowerDetector {
       print('📊 Output type: ${outputTensor.type}');
       print('🏷️  Labels: ${_labels!.length} classes');
 
-      // ✅ ทดสอบว่า model ใช้งานได้ไหม
+      // ทดสอบว่า model ใช้งานได้ไหม
       await _testModelInference();
 
       _isInitialized = true;
@@ -83,14 +92,12 @@ class OfflineFlowerDetector {
     try {
       print('🧪 Testing model inference...');
 
-      // สร้างรูปปลอม 320x320
       final testImage = img.Image(width: inputSize, height: inputSize);
       img.fill(testImage, color: img.ColorRgb8(128, 128, 128));
 
       final input = _preprocessImage(testImage);
       final inputTensor = input.reshape([1, inputSize, inputSize, 3]);
 
-      // Prepare output
       final outputShape = _interpreter!.getOutputTensor(0).shape;
       print('📐 Output shape for test: $outputShape');
 
@@ -102,7 +109,6 @@ class OfflineFlowerDetector {
         ),
       );
 
-      // ลอง run
       _interpreter!.run(inputTensor, output);
 
       print('✅ Model inference test passed!');
@@ -280,7 +286,7 @@ class OfflineFlowerDetector {
     return base64Encode(png);
   }
 
-  /// Preprocess (เหมือนเดิม)
+  /// Preprocess image
   Float32List _preprocessImage(img.Image image) {
     final resized = img.copyResize(
       image,
@@ -292,6 +298,9 @@ class OfflineFlowerDetector {
     final input = Float32List(1 * inputSize * inputSize * 3);
     int pixelIndex = 0;
 
+    // 🔄 ลองทั้ง 2 แบบ ดูว่าแบบไหนแม่นกว่า
+
+    // ✅ แบบที่ 1: Normalization แบบธรรมดา (0-1) - Default YOLOv8
     for (int y = 0; y < inputSize; y++) {
       for (int x = 0; x < inputSize; x++) {
         final pixel = resized.getPixel(x, y);
@@ -301,10 +310,30 @@ class OfflineFlowerDetector {
       }
     }
 
+    // 🔄 แบบที่ 2: ImageNet Normalization
+    // ถ้าแบบแรกไม่แม่น ให้ comment แบบแรกออก แล้ว uncomment ด้านล่างนี้
+    /*
+    const imagenetMean = [0.485, 0.456, 0.406];
+    const imagenetStd = [0.229, 0.224, 0.225];
+    
+    for (int y = 0; y < inputSize; y++) {
+      for (int x = 0; x < inputSize; x++) {
+        final pixel = resized.getPixel(x, y);
+        input[pixelIndex++] = (pixel.r / 255.0 - imagenetMean[0]) / imagenetStd[0];
+        input[pixelIndex++] = (pixel.g / 255.0 - imagenetMean[1]) / imagenetStd[1];
+        input[pixelIndex++] = (pixel.b / 255.0 - imagenetMean[2]) / imagenetStd[2];
+      }
+    }
+    */
+
+    print(
+      '📊 Preprocessing: Normalization 0-1 (change to ImageNet if accuracy is low)',
+    );
+
     return input;
   }
 
-  /// Run inference (เหมือนเดิม)
+  /// Run inference
   List<dynamic> _runInference(Float32List input) {
     final inputTensor = input.reshape([1, inputSize, inputSize, 3]);
 
@@ -322,7 +351,7 @@ class OfflineFlowerDetector {
     return output[0];
   }
 
-  /// Postprocess (เหมือนเดิม)
+  /// Postprocess
   List<Detection> _postProcess(
     List<dynamic> output,
     int originalWidth,
@@ -333,6 +362,51 @@ class OfflineFlowerDetector {
     final numClasses = output.length - 4;
     final numBoxes = output[0].length;
 
+    // 🔍 Debug: ดู raw scores
+    print('\n🔬 DEBUG - Top 5 raw predictions:');
+    List<Map<String, dynamic>> allPredictions = [];
+
+    for (int i = 0; i < numBoxes; i++) {
+      double maxScore = 0;
+      int classId = 0;
+
+      for (int c = 0; c < numClasses; c++) {
+        final score = output[4 + c][i].toDouble();
+        if (score > maxScore) {
+          maxScore = score;
+          classId = c;
+        }
+      }
+
+      if (maxScore > 0.1) {
+        // แสดงทุกอันที่มากกว่า 10%
+        allPredictions.add({
+          'classId': classId,
+          'className': _labels![classId],
+          'score': maxScore,
+        });
+      }
+    }
+
+    // เรียงตาม score
+    allPredictions.sort(
+      (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+    );
+
+    // แสดง top 5
+    for (
+      int i = 0;
+      i < (allPredictions.length > 5 ? 5 : allPredictions.length);
+      i++
+    ) {
+      final pred = allPredictions[i];
+      print(
+        '   ${i + 1}. ${pred['className']} - ${(pred['score'] * 100).toStringAsFixed(2)}%',
+      );
+    }
+    print('');
+
+    // Process detections ตามปกติ
     for (int i = 0; i < numBoxes; i++) {
       double x = output[0][i].toDouble();
       double y = output[1][i].toDouble();
@@ -354,7 +428,6 @@ class OfflineFlowerDetector {
         final scaleX = originalWidth / inputSize;
         final scaleY = originalHeight / inputSize;
 
-        // ✅ แปลงเป็น double ด้วย .toDouble()
         final x1 = ((x - w / 2) * scaleX)
             .clamp(0.0, originalWidth.toDouble())
             .toDouble();
@@ -385,7 +458,7 @@ class OfflineFlowerDetector {
     return _applyNMS(detections);
   }
 
-  /// NMS (เหมือนเดิม)
+  /// NMS
   List<Detection> _applyNMS(List<Detection> detections) {
     detections.sort((a, b) => b.confidence.compareTo(a.confidence));
 
@@ -404,7 +477,7 @@ class OfflineFlowerDetector {
     return result;
   }
 
-  /// Calculate IOU (เหมือนเดิม)
+  /// Calculate IOU
   double _calculateIOU(Detection box1, Detection box2) {
     final x1 = box1.x1 > box2.x1 ? box1.x1 : box2.x1;
     final y1 = box1.y1 > box2.y1 ? box1.y1 : box2.y1;

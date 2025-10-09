@@ -97,6 +97,7 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  // ✅ แก้ส่วน _donePicture() ตรงบรรทัด 180-230
   Future<void> _donePicture() async {
     if (_imagePath == null) return;
 
@@ -165,6 +166,30 @@ class _CameraScreenState extends State<CameraScreen> {
         return;
       }
 
+      // ✅ เพิ่ม null check
+      if (result.flowerNameEn == null || result.flowerNameEn!.isEmpty) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('เกิดข้อผิดพลาด'),
+                content: const Text('ไม่สามารถระบุชื่อดอกไม้ได้'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return;
+      }
+
       // Search in local database using detected name
       final flowerData = await _database.findByDetectedName(
         result.flowerNameEn!,
@@ -178,7 +203,7 @@ class _CameraScreenState extends State<CameraScreen> {
               return AlertDialog(
                 title: const Text('ไม่พบข้อมูล'),
                 content: Text(
-                  'ตรวจพบ: ${result.flowerName}\nแต่ไม่พบข้อมูลในฐานข้อมูล',
+                  'ตรวจพบ: ${result.flowerName ?? result.flowerNameEn}\nแต่ไม่พบข้อมูลในฐานข้อมูล',
                 ),
                 actions: [
                   TextButton(
@@ -197,7 +222,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
       // Show success message
       if (mounted) {
-        final confidencePercent = (flowerData.confidence! * 100)
+        final confidencePercent = ((result.confidence ?? 0) * 100)
             .toStringAsFixed(1);
         print('✅ FINAL RESULT: ${flowerData.nameThai} ($confidencePercent%)');
 
@@ -214,37 +239,48 @@ class _CameraScreenState extends State<CameraScreen> {
 
       // Save detection result to database
       try {
-        final boxesData = result.allDetections
-            ?.map(
-              (det) => {
-                'x1': det.x1,
-                'y1': det.y1,
-                'x2': det.x2,
-                'y2': det.y2,
-                'label': det.label,
-                'confidence': det.confidence,
-              },
-            )
-            .toList();
+        // ✅ ตรวจสอบว่ามีข้อมูลครบก่อนบันทึก
+        if (result.annotatedImageBase64 != null &&
+            result.annotatedImageBase64!.isNotEmpty &&
+            result.detectedAt != null &&
+            result.confidence != null) {
+          final boxesData = result.allDetections
+              ?.map(
+                (det) => {
+                  'x1': det.x1,
+                  'y1': det.y1,
+                  'x2': det.x2,
+                  'y2': det.y2,
+                  'label': det.label,
+                  'confidence': det.confidence,
+                },
+              )
+              .toList();
 
-        await _database.saveDetectionResult(
-          flowerName: flowerData.nameThai,
-          detectedAt: result.detectedAt!,
-          confidence: result.confidence!,
-          detectedImageBase64: result.annotatedImageBase64!,
-          detectionBoxes: boxesData,
-        );
+          await _database.saveDetectionResult(
+            flowerName: flowerData.nameThai,
+            detectedAt: result.detectedAt!,
+            confidence: result.confidence!,
+            detectedImageBase64: result.annotatedImageBase64!,
+            detectionBoxes: boxesData,
+          );
 
-        print('✅ Detection saved to database');
+          print('✅ Detection saved to database');
+        } else {
+          print(
+            '⚠️ Warning: Incomplete detection data, not saving to database',
+          );
+        }
       } catch (e) {
         print('⚠️ Warning: Detection data not saved - $e');
       }
 
       // Create flower object with detection data
+      // ✅ ให้ค่าเป็น null ได้ถ้าไม่มีข้อมูล
       final detectedFlower = flowerData.copyWith(
         detectedAt: result.detectedAt,
         confidence: result.confidence,
-        detectedImageBase64: result.annotatedImageBase64,
+        detectedImageBase64: result.annotatedImageBase64, // อาจเป็น null
         detectionBoxes: result.allDetections
             ?.map(
               (det) => DetectionBox(
@@ -269,9 +305,13 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Close loading dialog if still open
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        try {
+          Navigator.pop(context);
+        } catch (_) {}
+      }
 
       // Show error message
       if (mounted) {
@@ -294,6 +334,7 @@ class _CameraScreenState extends State<CameraScreen> {
         );
       }
       print('❌ Detection error: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 

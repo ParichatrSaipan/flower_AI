@@ -39,9 +39,8 @@ dependencies:
   http: ^1.1.0
   shared_preferences: ^2.2.2
   sqflite: ^2.3.0
-  tflite_flutter: ^0.10.4
-  intl: ^0.18.0 
-  tflite_flutter_helper: ^0.3.1  
+  tflite_flutter: ^0.11.0
+  intl: ^0.18.0
 
 
 
@@ -100,7 +99,7 @@ flutter:
     - asset/Orchid1.png
     - asset/Gardenia1.png
     - asset/Rose1.png
-    - asset/models/best_float16.tflite
+    - asset/models/best_float32.tflite
     - asset/models/labels.txt
 
   # An image asset can refer to one or more resolution-specific "variants", see
