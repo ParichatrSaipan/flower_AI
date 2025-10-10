@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/favorites_service.dart';
+import 'services/database_helper.dart';
 import 'flower_detail_screen.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -15,7 +15,7 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   List<Flower> favoriteFlowers = [];
   bool isLoading = true;
-  final FavoritesService _favoritesService = FavoritesService();
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   @override
   void initState() {
@@ -31,7 +31,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     try {
       print('=== FAVORITES SCREEN DEBUG ===');
 
-      final allFlowers = await _favoritesService.getAllFlowersDebug();
+      final allFlowers = await _databaseHelper.getAllFlowers();
       print('Total flowers in database: ${allFlowers.length}');
 
       for (var flower in allFlowers) {
@@ -40,7 +40,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         );
       }
 
-      final favorites = await _favoritesService.getFavoriteFlowers();
+      final favorites = await _databaseHelper.getFavoriteFlowers();
       print('Favorite flowers found: ${favorites.length}');
 
       for (var flower in favorites) {
@@ -67,7 +67,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Future<void> _refreshFavorites() async {
     try {
-      final favorites = await _favoritesService.getFavoriteFlowers();
+      final favorites = await _databaseHelper.getFavoriteFlowers();
       if (mounted) {
         setState(() {
           favoriteFlowers = favorites;

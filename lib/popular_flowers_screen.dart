@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'flower_detail_screen.dart';
+import 'services/database_helper.dart';
 
 class SeasonalFlowersScreen extends StatefulWidget {
   const SeasonalFlowersScreen({super.key});
@@ -275,7 +277,76 @@ class _SeasonalFlowersScreenState extends State<SeasonalFlowersScreen> {
     final String? imagePath = flower['imagePath'];
 
     return Center(
-      child: Container(
+      child: GestureDetector(
+        onTap: () async {
+          final dbHelper = DatabaseHelper();
+
+          // Name mapping for flowers that have different names in database
+          final nameMapping = {
+            'กุหลาบ': 'ดอกกุหลาบ',
+            'rose': 'Rose',
+            'ลิลลี่': 'ดอกลิลลี่',
+            'lily': 'Lily',
+          };
+
+          // Get mapped names or use original names
+          final mappedThaiName = nameMapping[nameThai] ?? nameThai;
+          final mappedEnglishName = nameMapping[nameEnglish] ?? nameEnglish;
+
+          // Try to find flower by Thai name first (try both original and mapped)
+          var flowerData = await dbHelper.getFlowerByName(nameThai);
+          flowerData ??= await dbHelper.getFlowerByName(mappedThaiName);
+
+          // If not found, try English name (try both original and mapped)
+          flowerData ??= await dbHelper.getFlowerByName(nameEnglish);
+          flowerData ??= await dbHelper.getFlowerByName(mappedEnglishName);
+
+          // If not found and name contains color, try to find by base name
+          if (flowerData == null) {
+            // List of Thai color words to remove
+            final colorWords = [
+              'สีขาว',
+              'สีแดง',
+              'สีชมพู',
+              'สีเหลือง',
+              'สีส้ม',
+              'สีม่วง',
+              'สีฟ้า',
+              'สีน้ำเงิน',
+              'สีเขียว',
+            ];
+
+            // Try to remove color from flower name
+            String baseFlowerName = nameThai;
+            for (var color in colorWords) {
+              if (nameThai.contains(color)) {
+                baseFlowerName = nameThai.replaceAll(color, '').trim();
+                break;
+              }
+            }
+
+            // Try again with base name if it's different
+            if (baseFlowerName != nameThai) {
+              flowerData = await dbHelper.getFlowerByName(baseFlowerName);
+            }
+          }
+
+          if (flowerData != null) {
+            if (!mounted) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FlowerDetailScreen(flower: flowerData!),
+              ),
+            );
+          } else {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('ไม่พบข้อมูลดอกไม้')),
+            );
+          }
+        },
+        child: Container(
         width: isLandscape ? null : 330,
         height: isLandscape ? null : 165,
         constraints: isLandscape
@@ -393,6 +464,7 @@ class _SeasonalFlowersScreenState extends State<SeasonalFlowersScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

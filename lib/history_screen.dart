@@ -5,6 +5,7 @@ import 'package:florasign_ai/models/flower.dart';
 import 'package:florasign_ai/services/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // import 'services/database_helper.dart';
 // import 'models/flower.dart';
@@ -25,6 +26,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    initializeDateFormatting('th', null);
     _loadHistory();
   }
 

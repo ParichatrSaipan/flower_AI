@@ -7,13 +7,26 @@ import 'history_screen.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showInstructions;
+
+  const HomeScreen({super.key, this.showInstructions = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Show instructions modal after build if requested
+    if (widget.showInstructions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showInfoModal(context);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

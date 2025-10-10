@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'models/flower.dart';
-import 'services/favorites_service.dart';
+import 'services/database_helper.dart';
 import 'dart:math' as math;
 
 class FlowerDetailScreen extends StatefulWidget {
@@ -56,12 +56,8 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
     });
 
     try {
-      final favoritesService = FavoritesService();
-      if (newFavoriteStatus) {
-        await favoritesService.addToFavorites(flower.nameThai);
-      } else {
-        await favoritesService.removeFromFavorites(flower.nameThai);
-      }
+      final dbHelper = DatabaseHelper();
+      await dbHelper.updateFavoriteStatus(flower.nameThai, newFavoriteStatus);
       print('Favorite status updated successfully');
     } catch (e) {
       print('Error updating favorite: $e');
@@ -75,6 +71,8 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -192,11 +190,15 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
           iconColor: const Color.fromRGBO(238, 82, 162, 1),
           onPressed: () => Navigator.pop(context),
         ),
-        _CircleIconButton(
-          icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-          backgroundColor: const Color.fromRGBO(217, 217, 217, 1),
-          iconColor: const Color.fromRGBO(238, 82, 162, 1),
-          onPressed: _toggleFavorite,
+        Row(
+          children: [
+            _CircleIconButton(
+              icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+              backgroundColor: const Color.fromRGBO(217, 217, 217, 1),
+              iconColor: const Color.fromRGBO(238, 82, 162, 1),
+              onPressed: _toggleFavorite,
+            ),
+          ],
         ),
       ],
     );

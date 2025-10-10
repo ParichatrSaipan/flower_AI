@@ -2,7 +2,6 @@ import 'dart:convert';
 
 class Flower {
   final int? id; // ← เพิ่ม id จาก database
-  final String day;
   final String nameThai;
   final String? nameEnglish;
   final String? imageUrl;
@@ -23,7 +22,6 @@ class Flower {
 
   Flower({
     this.id,
-    required this.day,
     required this.nameThai,
     this.nameEnglish,
     this.imageUrl,
@@ -42,7 +40,6 @@ class Flower {
   // fromJson สำหรับ JSON import (เดิม)
   factory Flower.fromJson(Map<String, dynamic> json) {
     return Flower(
-      day: json['day'] ?? '',
       nameThai: json['nameThai'] ?? '',
       nameEnglish: json['nameEnglish'],
       imageUrl: json['imageUrl'],
@@ -102,7 +99,6 @@ class Flower {
 
     return Flower(
       id: map['id'],
-      day: map['day'] ?? '',
       nameThai: map['nameThai'] ?? '',
       nameEnglish: map['nameEnglish'],
       imageUrl: map['imageUrl'],
@@ -132,7 +128,6 @@ class Flower {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
-      'day': day,
       'nameThai': nameThai,
       'nameEnglish': nameEnglish,
       'imageUrl': imageUrl,
@@ -157,7 +152,6 @@ class Flower {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'day': day,
       'nameThai': nameThai,
       'nameEnglish': nameEnglish,
       'imageUrl': imageUrl,
@@ -174,7 +168,6 @@ class Flower {
 
   Flower copyWith({
     int? id,
-    String? day,
     String? nameThai,
     String? nameEnglish,
     String? imageUrl,
@@ -191,7 +184,6 @@ class Flower {
   }) {
     return Flower(
       id: id ?? this.id,
-      day: day ?? this.day,
       nameThai: nameThai ?? this.nameThai,
       nameEnglish: nameEnglish ?? this.nameEnglish,
       imageUrl: imageUrl ?? this.imageUrl,

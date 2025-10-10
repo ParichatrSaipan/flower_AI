@@ -326,13 +326,45 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
       child: GestureDetector(
         onTap: () async {
           final dbHelper = DatabaseHelper();
-          final flower = await dbHelper.getFlowerByName(flowerName);
+
+          // Try to find flower by exact name first
+          var flower = await dbHelper.getFlowerByName(flowerName);
+
+          // If not found and name contains color, try to find by base name
+          if (flower == null) {
+            // List of Thai color words to remove
+            final colorWords = [
+              'สีขาว',
+              'สีแดง',
+              'สีชมพู',
+              'สีเหลือง',
+              'สีส้ม',
+              'สีม่วง',
+              'สีฟ้า',
+              'สีน้ำเงิน',
+              'สีเขียว',
+            ];
+
+            // Try to remove color from flower name
+            String baseFlowerName = flowerName;
+            for (var color in colorWords) {
+              if (flowerName.contains(color)) {
+                baseFlowerName = flowerName.replaceAll(color, '').trim();
+                break;
+              }
+            }
+
+            // Try again with base name if it's different
+            if (baseFlowerName != flowerName) {
+              flower = await dbHelper.getFlowerByName(baseFlowerName);
+            }
+          }
 
           if (flower != null) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FlowerDetailScreen(flower: flower),
+                builder: (context) => FlowerDetailScreen(flower: flower!),
               ),
             );
           } else {

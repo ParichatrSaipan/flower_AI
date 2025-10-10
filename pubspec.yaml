@@ -41,6 +41,8 @@ dependencies:
   sqflite: ^2.3.0
   tflite_flutter: ^0.11.0
   intl: ^0.18.0
+  image_gallery_saver: ^2.0.3
+  permission_handler: ^11.0.1
 
 
 
@@ -102,10 +104,11 @@ flutter:
     - asset/models/best_float32.tflite
     - asset/models/labels.txt
     - asset/Jasmine.png
-    - asset/Violet.png
-    - asset/Sunflower.png
+    - asset/violet.png
+    - asset/sunflower.png
     - asset/lily_2.png
-    - asset/Chrysanthemum.png
+    - asset/chrysanthemum.png
+    - asset/Chrysanthemum_2.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -43,7 +43,6 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE flowers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      day TEXT,
       nameThai TEXT NOT NULL,
       nameEnglish TEXT NOT NULL,
       imageUrl TEXT,
@@ -59,16 +58,6 @@ class DatabaseHelper {
       createdAt TEXT,
       updatedAt TEXT,
       UNIQUE(nameThai, nameEnglish)
-    )
-  ''');
-
-    // Create favorites cache table for quick access
-    await db.execute('''
-    CREATE TABLE favorites_cache (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      flowerName TEXT NOT NULL UNIQUE,
-      lastSynced TEXT,
-      isDeleted INTEGER DEFAULT 0
     )
   ''');
 
@@ -229,74 +218,6 @@ class DatabaseHelper {
       where: 'nameThai = ? OR nameEnglish = ?',
       whereArgs: [flowerName, flowerName],
     );
-
-    // Update favorites cache
-    await _updateFavoritesCache(flowerName, isFavorite);
-  }
-
-  /// Update flower image base64 data
-  Future<void> updateFlowerImage(String flowerName, String imageBase64) async {
-    final db = await database;
-
-    await db.update(
-      'flowers',
-      {
-        'imageBase64': imageBase64,
-        'updatedAt': DateTime.now().toIso8601String(),
-      },
-      where: 'nameThai = ? OR nameEnglish = ?',
-      whereArgs: [flowerName, flowerName],
-    );
-  }
-
-  /// Delete a flower from the database
-  Future<void> deleteFlower(String flowerName) async {
-    final db = await database;
-
-    await db.delete(
-      'flowers',
-      where: 'nameThai = ? OR nameEnglish = ?',
-      whereArgs: [flowerName, flowerName],
-    );
-
-    // Remove from favorites cache
-    await db.delete(
-      'favorites_cache',
-      where: 'flowerName = ?',
-      whereArgs: [flowerName],
-    );
-  }
-
-  // FAVORITES CACHE OPERATIONS
-
-  /// Update favorites cache
-  Future<void> _updateFavoritesCache(String flowerName, bool isFavorite) async {
-    final db = await database;
-
-    if (isFavorite) {
-      await db.insert('favorites_cache', {
-        'flowerName': flowerName,
-        'lastSynced': DateTime.now().toIso8601String(),
-        'isDeleted': 0,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
-    } else {
-      await db.delete(
-        'favorites_cache',
-        where: 'flowerName = ?',
-        whereArgs: [flowerName],
-      );
-    }
-  }
-
-  /// Get favorites that need to be synced with API
-  Future<List<String>> getFavoritesToSync() async {
-    final db = await database;
-    final List<Map<String, dynamic>> results = await db.query(
-      'favorites_cache',
-      where: 'isDeleted = ?',
-      whereArgs: [0],
-    );
-    return results.map((map) => map['flowerName'] as String).toList();
   }
 
   // SYNC LOG OPERATIONS
@@ -317,12 +238,6 @@ class DatabaseHelper {
       'success': success ? 1 : 0,
       'errorMessage': errorMessage,
     });
-  }
-
-  /// Get recent sync logs
-  Future<List<Map<String, dynamic>>> getSyncLogs({int limit = 50}) async {
-    final db = await database;
-    return await db.query('sync_log', orderBy: 'timestamp DESC', limit: limit);
   }
 
   // UTILITY OPERATIONS
@@ -384,7 +299,6 @@ class DatabaseHelper {
   Future<void> clearAllData() async {
     final db = await database;
     await db.delete('flowers');
-    await db.delete('favorites_cache');
     await db.delete('sync_log');
   }
 
@@ -432,7 +346,6 @@ class DatabaseHelper {
 
       print('Clearing all flower data...');
       await db.delete('flowers');
-      await db.delete('favorites_cache');
       await db.delete('sync_log');
 
       print('Re-importing data from JSON...');
@@ -496,6 +409,7 @@ class DatabaseHelper {
           if (imageValue != null && imageValue.isNotEmpty) {
             // If it starts with common image path prefixes, treat as path
             if (imageValue.startsWith('assets/') ||
+                imageValue.startsWith('asset/') ||
                 imageValue.startsWith('lib/') ||
                 imageValue.startsWith('/') ||
                 imageValue.endsWith('.png') ||
@@ -519,7 +433,6 @@ class DatabaseHelper {
 
           // ✅ Insert flower into database พร้อมข้อมูล colorMeanings และ useFor
           await db.insert('flowers', {
-            'day': item['day']?.toString() ?? '',
             'nameThai': item['nameThai']?.toString() ?? '',
             'nameEnglish': item['nameEnglish']?.toString() ?? '',
             'imageUrl': item['imageUrl']?.toString(),
