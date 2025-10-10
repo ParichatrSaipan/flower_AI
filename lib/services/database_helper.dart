@@ -671,6 +671,11 @@ class DatabaseHelper {
     'globe amaranth': 'Globe amaranth',
     'orchid': 'Orchid',
     'gardenia augusta': 'Gardenia augusta',
+    'jasmine': 'Jasmine',
+    'Violet': 'Violet',
+    'sunflower': 'Sunflower',
+    'lily': 'Lily',
+    'chrysanthemum': 'Chrysanthemum',
   };
 
   /// ค้นหาดอกไม้จากชื่อที่ detect ได้ (พร้อม mapping)

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'flower_detail_screen.dart';
+import 'services/database_helper.dart';
 
 class BirthFlowersScreen extends StatefulWidget {
   const BirthFlowersScreen({super.key});
@@ -321,95 +323,114 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
     bool isLandscape = false,
   }) {
     return Center(
-      child: Container(
-        width: isLandscape ? null : 330,
-        height: isLandscape ? null : 165,
-        constraints: isLandscape
-            ? null
-            : const BoxConstraints(maxWidth: 330, maxHeight: 165),
-        decoration: BoxDecoration(
-          color: const Color.fromRGBO(255, 204, 237, 1),
-          borderRadius: BorderRadius.circular(37),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Image section
-            Expanded(
-              flex: isLandscape ? 3 : 1,
-              child: Container(
-                width: isLandscape ? null : 175,
-                padding: const EdgeInsets.all(12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    _getImageForDay(day),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.local_florist,
-                          size: 60,
-                          color: Color(0xFFFF94B7),
-                        ),
-                      );
-                    },
+      child: GestureDetector(
+        onTap: () async {
+          final dbHelper = DatabaseHelper();
+          final flower = await dbHelper.getFlowerByName(flowerName);
+
+          if (flower != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FlowerDetailScreen(flower: flower),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('ไม่พบข้อมูลดอกไม้')));
+          }
+        },
+        child: Container(
+          width: isLandscape ? null : 330,
+          height: isLandscape ? null : 165,
+          constraints: isLandscape
+              ? null
+              : const BoxConstraints(maxWidth: 330, maxHeight: 165),
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(255, 204, 237, 1),
+            borderRadius: BorderRadius.circular(37),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Image section
+              Expanded(
+                flex: isLandscape ? 3 : 1,
+                child: Container(
+                  width: isLandscape ? null : 175,
+                  padding: const EdgeInsets.all(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      _getImageForDay(day),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(
+                            Icons.local_florist,
+                            size: 60,
+                            color: Color(0xFFFF94B7),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // Content section
-            Expanded(
-              flex: isLandscape ? 2 : 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 30,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        day,
-                        style: TextStyle(
-                          fontFamily: 'Kanit',
-                          fontSize: isLandscape ? 18 : 20,
-                          fontWeight: FontWeight.bold,
-                          color: _getColorForDay(day),
+              // Content section
+              Expanded(
+                flex: isLandscape ? 2 : 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 30,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          day,
+                          style: TextStyle(
+                            fontFamily: 'Kanit',
+                            fontSize: isLandscape ? 18 : 20,
+                            fontWeight: FontWeight.bold,
+                            color: _getColorForDay(day),
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Flexible(
-                      child: Text(
-                        '"$flowerName"',
-                        style: TextStyle(
-                          fontFamily: 'Kanit',
-                          fontSize: isLandscape ? 16 : 18,
-                          color: Color.fromRGBO(91, 14, 43, 1),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: Text(
+                          '"$flowerName"',
+                          style: TextStyle(
+                            fontFamily: 'Kanit',
+                            fontSize: isLandscape ? 16 : 18,
+                            color: Color.fromRGBO(91, 14, 43, 1),
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
