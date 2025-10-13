@@ -8,7 +8,8 @@ class ApiService {
   static const String backendUrl =
       'https://cr2amx-flower-detector.hf.space/api/detect';
 
-  static const double confidenceThreshold = 0.25;
+  // ✅ แก้จาก 0.25 เป็น 0.6 (60%)
+  static const double confidenceThreshold = 0.6;
   static const double iouThreshold = 0.45;
 
   static const Map<String, String> flowerNamesTh = {
@@ -70,8 +71,8 @@ class ApiService {
 
       // สร้าง request body
       final requestBody = jsonEncode({
-        'image': base64Image, // ไม่ใส่ prefix
-        'confidence': confidenceThreshold,
+        'image': base64Image,
+        'confidence': confidenceThreshold, // ใช้ 0.6
       });
 
       print('📤 Sending request to: $backendUrl');
@@ -149,7 +150,7 @@ class ApiService {
 
           final confidence = (mainFlower['confidence'] as num).toDouble();
 
-          // ✅ แก้ตรงนี้: confidence เป็น % แล้ว ไม่ต้องคูณ 100
+          // confidence เป็น % แล้ว ไม่ต้องคูณ 100
           print(
             '🌺 Detected: $flowerNameEn (${confidence.toStringAsFixed(1)}%)',
           );
@@ -189,9 +190,6 @@ class ApiService {
               );
             } else if (bbox != null && bbox is List && bbox.length >= 4) {
               // ถ้าเป็น array [x1, y1, x2, y2]
-            } else if (bbox != null && bbox is List && bbox.length >= 4) {
-              // ถ้าเป็น array [x1, y1, x2, y2]
-              // รองรับหลาย field names สำหรับชื่อดอกไม้
               String className =
                   (det['name_en'] ??
                           det['class'] ??
@@ -260,7 +258,6 @@ class ApiService {
           final totalTime = stopwatch.elapsedMilliseconds;
 
           print('✅ Main flower: $flowerNameTh ($flowerNameEn)');
-          // ✅ แก้ตรงนี้: confidence เป็น % แล้ว
           print('📊 Confidence: ${confidence.toStringAsFixed(1)}%');
           print('🎯 Total detections: ${detectionList.length}');
           print('✨ Total time: ${totalTime}ms');
@@ -327,7 +324,6 @@ class ApiService {
     final topCount = sorted.length > 5 ? 5 : sorted.length;
     for (int i = 0; i < topCount; i++) {
       final det = sorted[i];
-      // ✅ แก้ตรงนี้: confidence เป็น % แล้ว
       print(
         '   ${i + 1}. ${det.labelTh} (${det.label}) - ${det.confidence.toStringAsFixed(2)}%',
       );
@@ -361,7 +357,6 @@ class ApiService {
         );
       }
 
-      // ✅ แก้ตรงนี้: confidence เป็น % แล้ว
       final label =
           '${detection.labelTh} ${detection.confidence.toStringAsFixed(0)}%';
       final textBgHeight = 25;
@@ -426,7 +421,6 @@ class Detection {
 
   @override
   String toString() {
-    // ✅ แก้ตรงนี้: confidence เป็น % แล้ว
     return 'Detection(label: $labelTh ($label), confidence: ${confidence.toStringAsFixed(1)}%)';
   }
 }
@@ -463,7 +457,6 @@ class RecognitionResult {
   @override
   String toString() {
     if (!success) return 'RecognitionResult(success: false, message: $message)';
-    // ✅ แก้ตรงนี้: confidence เป็น % แล้ว
     return 'RecognitionResult(flower: $flowerName, confidence: ${confidence!.toStringAsFixed(1)}%, time: ${inferenceTime}ms)';
   }
 }
