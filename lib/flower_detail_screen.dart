@@ -22,18 +22,34 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
   void initState() {
     super.initState();
     flower = widget.flower;
-    _loadFlowerImage();
+    // ไม่ต้อง load imageBase64 แล้ว - ใช้ asset โดยตรง
+
+    // DEBUG
+    print('═══════════════════════════════════════════════════════════');
+    print('🌸 FlowerDetailScreen Init:');
+    print('  Name (TH): ${flower.nameThai}');
+    print('  Name (EN): ${flower.nameEnglish}');
+    print('  imageUrl: ${flower.imageUrl}');
+    print('  useFor: ${flower.useFor}');
+    print('  useFor.length: ${flower.useFor?.length}');
+    print('  meanings.other: ${flower.meanings.other}');
+    print('  colorMeanings: ${flower.meanings.colorMeanings}');
+    print('  colorMeanings.length: ${flower.meanings.colorMeanings?.length}');
+    print('═══════════════════════════════════════════════════════════');
   }
 
   void _loadFlowerImage() {
+    // ถ้ามี imageBase64 ให้ใช้ (รูปที่บันทึกไว้)
     if (flower.imageBase64 != null && flower.imageBase64!.isNotEmpty) {
       try {
         imageBytes = base64Decode(flower.imageBase64!);
         setState(() {});
+        return;
       } catch (e) {
         print('Error decoding base64 image: $e');
       }
     }
+    // ถ้าไม่มี base64 ก็ไม่ต้องทำอะไร (จะใช้ imageUrl แทน)
   }
 
   void _toggleFavorite() async {
@@ -207,23 +223,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
             SizedBox(
               height: imageSize,
               width: imageSize,
-              child: imageBytes != null
-                  ? Image.memory(
-                      imageBytes,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.local_florist,
-                          size: 120,
-                          color: Color(0xFFA4798D),
-                        );
-                      },
-                    )
-                  : const Icon(
-                      Icons.local_florist,
-                      size: 120,
-                      color: Color(0xFFA4798D),
-                    ),
+              child: _buildFlowerImage(imageBytes),
             ),
             const SizedBox(height: 12),
             Row(
@@ -246,12 +246,54 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
     );
   }
 
+  // ฟังก์ชันใหม่: แสดงรูปจาก asset หรือ base64
+  Widget _buildFlowerImage(Uint8List? imageBytes) {
+    // ถ้ามี imageBytes (base64) ให้แสดง
+    if (imageBytes != null) {
+      return Image.memory(
+        imageBytes,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildFallbackIcon();
+        },
+      );
+    }
+
+    // ถ้าไม่มี base64 แต่มี imageUrl ให้แสดงจาก asset
+    if (flower.imageUrl != null && flower.imageUrl!.isNotEmpty) {
+      return Image.asset(
+        flower.imageUrl!,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ Error loading asset image: ${flower.imageUrl}');
+          return _buildFallbackIcon();
+        },
+      );
+    }
+
+    // ถ้าไม่มีทั้งสองอย่าง แสดง icon
+    return _buildFallbackIcon();
+  }
+
+  Widget _buildFallbackIcon() {
+    return const Icon(Icons.local_florist, size: 120, color: Color(0xFFA4798D));
+  }
+
   Widget _buildMeaningsSection(Flower flowerData) {
     final meanings = flowerData.meanings;
+
+    print('_buildMeaningsSection:');
+    print('  colorMeanings: ${meanings.colorMeanings}');
+    print('  colorMeanings.length: ${meanings.colorMeanings?.length}');
+    print('  other: ${meanings.other}');
+
     final hasColorMeanings =
         meanings.colorMeanings != null && meanings.colorMeanings!.isNotEmpty;
     final hasOtherMeaning =
         meanings.other != null && meanings.other!.isNotEmpty;
+
+    print('  hasColorMeanings: $hasColorMeanings');
+    print('  hasOtherMeaning: $hasOtherMeaning');
 
     return Container(
       decoration: const BoxDecoration(
@@ -334,6 +376,16 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                         color: Colors.black,
                       ),
                     ),
+                  if (!hasColorMeanings && !hasOtherMeaning)
+                    const Text(
+                      'ไม่มีข้อมูลความหมายในฐานข้อมูล',
+                      style: TextStyle(
+                        fontFamily: 'Kanit',
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -344,6 +396,19 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
   }
 
   Widget _buildUseForSection(List<String> useFor) {
+    print('═══════════════════════════════════════════════════════════');
+    print('🔍 _buildUseForSection DEBUG:');
+    print('  useFor type: ${useFor.runtimeType}');
+    print('  useFor length: ${useFor.length}');
+    print('  useFor raw: $useFor');
+
+    for (int i = 0; i < useFor.length; i++) {
+      print('  [$i] = "${useFor[i]}"');
+      print('      Contains [: ${useFor[i].contains('[')}');
+      print('      Contains ]: ${useFor[i].contains(']')}');
+    }
+    print('═══════════════════════════════════════════════════════════');
+
     return Container(
       decoration: const BoxDecoration(color: Color(0xFFFFF1F7)),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
@@ -392,6 +457,13 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ...useFor.map((use) {
+                    // ทำความสะอาด string ก่อนแสดงผล
+                    final cleanedUse = use
+                        .replaceAll('[', '')
+                        .replaceAll(']', '')
+                        .replaceAll('"', '')
+                        .trim();
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -405,7 +477,7 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              use,
+                              cleanedUse,
                               style: const TextStyle(
                                 fontFamily: 'Kanit',
                                 fontSize: 14,
@@ -432,7 +504,6 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
         ? const Color(0xFF5A4A52)
         : Colors.white;
 
-    // ถ้าไม่ได้แบ่งตามสี (เช่น color ว่างเปล่า หรือ '-') ให้แสดงเฉพาะความหมาย ไม่แสดงกล่องสี
     if (meaning.color.trim().isEmpty || meaning.color.trim() == '-') {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -451,7 +522,6 @@ class _FlowerDetailScreenState extends State<FlowerDetailScreen> {
       );
     }
 
-    // กรณีปกติ แสดงกล่องสีและชื่อสี
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

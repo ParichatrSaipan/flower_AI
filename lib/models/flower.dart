@@ -2,7 +2,7 @@ import 'dart:convert';
 
 class Flower {
   final int? id; // Local database ID
-  final String day;
+  final String? day; // วันเกิด (optional)
   final String nameThai;
   final String nameEnglish;
   final String? imageUrl;
@@ -10,12 +10,19 @@ class Flower {
   final List<String>? useFor;
   final bool isFavorite;
   final String? imageBase64; // For storing cached images locally
+
+  // ข้อมูลเพิ่มจาก Detection
+  final DateTime? detectedAt;
+  final double? confidence;
+  final String? detectedImageBase64;
+  final List<DetectionBox>? detectionBoxes;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   Flower({
     this.id,
-    required this.day,
+    this.day,
     required this.nameThai,
     required this.nameEnglish,
     this.imageUrl,
@@ -23,6 +30,10 @@ class Flower {
     this.useFor,
     this.isFavorite = false,
     this.imageBase64,
+    this.detectedAt,
+    this.confidence,
+    this.detectedImageBase64,
+    this.detectionBoxes,
     this.createdAt,
     this.updatedAt,
   });
@@ -30,7 +41,7 @@ class Flower {
   // Convert from JSON (for API responses)
   factory Flower.fromJson(Map<String, dynamic> json) {
     return Flower(
-      day: json['day'] ?? '',
+      day: json['day']?.toString(),
       nameThai: json['nameThai'] ?? '',
       nameEnglish: json['nameEnglish'] ?? '',
       imageUrl: json['imageUrl'],
@@ -40,6 +51,14 @@ class Flower {
       useFor: json['useFor'] != null ? List<String>.from(json['useFor']) : null,
       isFavorite: json['isFavorite'] ?? false,
       imageBase64: json['imageBase64'],
+      detectedAt: json['detectedAt'] != null
+          ? DateTime.parse(json['detectedAt'])
+          : null,
+      confidence: json['confidence']?.toDouble(),
+      detectedImageBase64: json['detectedImageBase64'],
+      detectionBoxes: (json['detectionBoxes'] as List?)
+          ?.map((e) => DetectionBox.fromJson(e))
+          .toList(),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -56,6 +75,10 @@ class Flower {
       'useFor': useFor,
       'isFavorite': isFavorite,
       'imageBase64': imageBase64,
+      'detectedAt': detectedAt?.toIso8601String(),
+      'confidence': confidence,
+      'detectedImageBase64': detectedImageBase64,
+      'detectionBoxes': detectionBoxes?.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -74,6 +97,12 @@ class Flower {
       'useFor': useFor?.join(','), // Store list as comma-separated string
       'isFavorite': isFavorite ? 1 : 0, // SQLite uses integers for booleans
       'imageBase64': imageBase64,
+      'detectedAt': detectedAt?.toIso8601String(),
+      'confidence': confidence,
+      'detectedImageBase64': detectedImageBase64,
+      'detectionBoxes': detectionBoxes != null
+          ? jsonEncode(detectionBoxes!.map((e) => e.toJson()).toList())
+          : null,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -94,9 +123,23 @@ class Flower {
       }
     }
 
+    // Parse detectionBoxes from JSON string
+    List<DetectionBox>? detectionBoxes;
+    if (map['detectionBoxes'] != null &&
+        map['detectionBoxes'].toString().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(map['detectionBoxes']);
+        detectionBoxes = decoded
+            .map((item) => DetectionBox.fromJson(item))
+            .toList();
+      } catch (e) {
+        print('Error parsing detectionBoxes: $e');
+      }
+    }
+
     return Flower(
       id: map['id']?.toInt(),
-      day: map['day'] ?? '',
+      day: map['day']?.toString(),
       nameThai: map['nameThai'] ?? '',
       nameEnglish: map['nameEnglish'] ?? '',
       imageUrl: map['imageUrl'],
@@ -109,6 +152,12 @@ class Flower {
           : null,
       isFavorite: (map['isFavorite'] ?? 0) == 1,
       imageBase64: map['imageBase64'],
+      detectedAt: map['detectedAt'] != null
+          ? DateTime.parse(map['detectedAt'])
+          : null,
+      confidence: map['confidence']?.toDouble(),
+      detectedImageBase64: map['detectedImageBase64'],
+      detectionBoxes: detectionBoxes,
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'])
           : null,
@@ -129,6 +178,10 @@ class Flower {
     List<String>? useFor,
     bool? isFavorite,
     String? imageBase64,
+    DateTime? detectedAt,
+    double? confidence,
+    String? detectedImageBase64,
+    List<DetectionBox>? detectionBoxes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -142,6 +195,10 @@ class Flower {
       useFor: useFor ?? this.useFor,
       isFavorite: isFavorite ?? this.isFavorite,
       imageBase64: imageBase64 ?? this.imageBase64,
+      detectedAt: detectedAt ?? this.detectedAt,
+      confidence: confidence ?? this.confidence,
+      detectedImageBase64: detectedImageBase64 ?? this.detectedImageBase64,
+      detectionBoxes: detectionBoxes ?? this.detectionBoxes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -152,10 +209,7 @@ class Meanings {
   final List<FlowerTypeMeanning>? colorMeanings;
   final String? other;
 
-  Meanings({
-    this.colorMeanings,
-    this.other,
-  });
+  Meanings({this.colorMeanings, this.other});
 
   factory Meanings.fromJson(Map<String, dynamic> json) {
     List<FlowerTypeMeanning>? colorMeaningsList;
@@ -165,10 +219,7 @@ class Meanings {
           .toList();
     }
 
-    return Meanings(
-      colorMeanings: colorMeaningsList,
-      other: json['other'],
-    );
+    return Meanings(colorMeanings: colorMeaningsList, other: json['other']);
   }
 
   Map<String, dynamic> toJson() {
@@ -183,10 +234,7 @@ class FlowerTypeMeanning {
   final String color;
   final String meaning;
 
-  FlowerTypeMeanning({
-    required this.color,
-    required this.meaning,
-  });
+  FlowerTypeMeanning({required this.color, required this.meaning});
 
   factory FlowerTypeMeanning.fromJson(Map<String, dynamic> json) {
     return FlowerTypeMeanning(
@@ -196,9 +244,44 @@ class FlowerTypeMeanning {
   }
 
   Map<String, dynamic> toJson() {
+    return {'color': color, 'meaning': meaning};
+  }
+}
+
+// กรอบของการ detect แต่ละตัว
+class DetectionBox {
+  final double x1, y1, x2, y2;
+  final String label;
+  final double confidence;
+
+  DetectionBox({
+    required this.x1,
+    required this.y1,
+    required this.x2,
+    required this.y2,
+    required this.label,
+    required this.confidence,
+  });
+
+  factory DetectionBox.fromJson(Map<String, dynamic> json) {
+    return DetectionBox(
+      x1: (json['x1'] as num).toDouble(),
+      y1: (json['y1'] as num).toDouble(),
+      x2: (json['x2'] as num).toDouble(),
+      y2: (json['y2'] as num).toDouble(),
+      label: json['label']?.toString() ?? '',
+      confidence: (json['confidence'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
     return {
-      'color': color,
-      'meaning': meaning,
+      'x1': x1,
+      'y1': y1,
+      'x2': x2,
+      'y2': y2,
+      'label': label,
+      'confidence': confidence,
     };
   }
 }

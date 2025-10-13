@@ -297,23 +297,7 @@ class _BirthFlowersScreenState extends State<BirthFlowersScreen> {
   }
 
   Color _getColorForDay(String day) {
-    final dayLower = day.toLowerCase();
-    if (dayLower.contains('จันทร์') || dayLower.contains('monday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('อังคาร') || dayLower.contains('tuesday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('พุธ') || dayLower.contains('wednesday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('พฤหัสบดี') || dayLower.contains('thursday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('ศุกร์') || dayLower.contains('friday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('เสาร์') || dayLower.contains('saturday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    } else if (dayLower.contains('อาทิตย์') || dayLower.contains('sunday')) {
-      return Color.fromRGBO(91, 14, 43, 1);
-    }
-    return const Color.fromRGBO(91, 14, 43, 1);
+    return Color.fromRGBO(91, 14, 43, 1);
   }
 
   Widget _buildFlowerDayCard(
