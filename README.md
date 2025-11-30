@@ -1,5 +1,7 @@
 # FloraSign AI - Flower Recognition and Information App
 
+![demo-app](asset/demo_app.png)
+
 FloraSign AI is a Flutter application that helps users recognize and learn about various flowers through photo capture and AI technology, including viewing birthday flowers and popular flowers information.
 
 ## Table of Contents
