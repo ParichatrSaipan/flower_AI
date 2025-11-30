@@ -31,25 +31,21 @@ FloraSign AI uses AI technology (YOLO Model) to detect and recognize flowers fro
 
 ```mermaid
 flowchart TB
-    subgraph Client["📱 Client"]
-        A[Flutter App<br/>Mobile/Web]
+    subgraph Client["Client Layer"]
+        A[Flutter Application]
     end
     
-    subgraph Backend["☁️ Cloud"]
-        B[YOLO Detection API<br/>Hugging Face Space]
+    subgraph Cloud["Cloud Services"]
+        B[YOLO Detection API]
     end
     
-    subgraph Local["💾 Local Storage"]
+    subgraph Storage["Data Persistence"]
         C[(SQLite Database)]
     end
     
-    A -->|"📤 Send Image"| B
-    B -->|"📥 Detection Result"| A
-    A -->|"💾 Save/Query"| C
-    
-    style A fill:#42A5F5,stroke:#1976D2,color:#fff
-    style B fill:#66BB6A,stroke:#388E3C,color:#fff
-    style C fill:#FFA726,stroke:#F57C00,color:#fff
+    A -->|"HTTP Request: Image Data"| B
+    B -->|"JSON Response: Detection Results"| A
+    A <-->|"CRUD Operations"| C
 ```
 
 ## Features
