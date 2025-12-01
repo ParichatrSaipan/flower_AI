@@ -145,11 +145,5 @@ Confidence Threshold: 60%
 IOU Threshold: 45%
 ```
 
-## Team Members
 
-| Student ID | Name |
-|------------|------|
-| 66160106 | Manatsanan Kiatjakrawan |
-| 66160152 | Parichatr Saipan |
-| 66160176 | Anuwat Kaewsuk |
 
